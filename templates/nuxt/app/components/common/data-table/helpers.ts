@@ -20,7 +20,7 @@ export function selectionColumn<TData>(): ColumnDef<TData> {
     size: 40,
     enableSorting: false,
     enableHiding: false,
-    meta: { className: 'w-10', fixedWidth: true },
+    meta: { className: 'w-10', fixedWidth: true, overflow: 'visible' },
     header: ({ table }) =>
       h(Checkbox, {
         'aria-label': 'Select all rows on this page',
@@ -63,7 +63,11 @@ export function actionsColumn<TData>(
     enableSorting: false,
     enableHiding: false,
     // w-px: shrink to the buttons in the auto layout (no maxBodyHeight).
-    meta: { className: cn('w-px whitespace-nowrap text-right', pinned && pinnedRightClass), fixedWidth: true },
+    meta: {
+      className: cn('w-px whitespace-nowrap text-right', pinned && pinnedRightClass),
+      fixedWidth: true,
+      overflow: 'visible',
+    },
     header: () => h('span', { class: 'sr-only' }, 'Actions'),
     cell: ({ row }) =>
       h(DataTableRowActions as Component, { row: row.original, actions: rowActions(row.original), display }),

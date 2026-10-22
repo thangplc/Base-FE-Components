@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { DataTableCellTooltip } from "./data-table-cell-tooltip"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableRowActions, estimateRowActionsWidth } from "./data-table-row-actions"
 import { DataTableToolbar } from "./data-table-toolbar"
@@ -300,6 +301,8 @@ function DataTableContent<TData, TValue>({
   const visibleColumns = table.getVisibleLeafColumns()
   const rows = table.getRowModel().rows
 
+  const rootRef = useRef<HTMLDivElement>(null)
+
   // Whether the columns overflow horizontally; drives the pinned actions
   // column through `data-overflow-x` (see pinnedRightClass).
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -358,7 +361,9 @@ function DataTableContent<TData, TValue>({
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            <CellContent overflow={cell.column.columnDef.meta?.overflow}>
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </CellContent>
           </TableCell>
         ))}
       </TableRow>
@@ -373,9 +378,11 @@ function DataTableContent<TData, TValue>({
 
   return (
     <div
+      ref={rootRef}
       className={cn("group/table flex flex-col gap-4", className)}
       data-overflow-x={overflowX || undefined}
     >
+      <DataTableCellTooltip containerRef={rootRef} />
       <DataTableToolbar
         table={table}
         searchPlaceholder={searchPlaceholder}
@@ -514,6 +521,30 @@ function columnWidths<TData>(columns: Column<TData, unknown>[], available: numbe
   return widths
 }
 
+/**
+ * Body cell content per `meta.overflow`. `truncate` cuts long text with an
+ * ellipsis (needs a bounded width: always true with `maxBodyHeight`; in the
+ * auto layout columns grow to fit, unless you cap them, e.g. `max-w-60`
+ * in `meta.className`). DataTableCellTooltip shows the full text.
+ */
+function CellContent({
+  overflow = "truncate",
+  children,
+}: {
+  overflow?: "truncate" | "wrap" | "visible"
+  children: ReactNode
+}) {
+  if (overflow === "visible") return children
+  return (
+    <div
+      data-slot={overflow === "truncate" ? "cell-content" : undefined}
+      className={overflow === "truncate" ? "truncate" : "break-words whitespace-normal"}
+    >
+      {children}
+    </div>
+  )
+}
+
 function selectedOriginals<TData>(table: TanstackTable<TData>, selection: RowSelectionState) {
   const rowsById = table.getCoreRowModel().rowsById
   return Object.keys(selection)
@@ -528,7 +559,7 @@ function selectionColumn<TData, TValue>(): ColumnDef<TData, TValue> {
     size: 40,
     enableSorting: false,
     enableHiding: false,
-    meta: { className: "w-10", fixedWidth: true },
+    meta: { className: "w-10", fixedWidth: true, overflow: "visible" },
     header: ({ table }) => (
       <Checkbox
         aria-label="Select all rows on this page"
@@ -575,7 +606,11 @@ function actionsColumn<TData, TValue>(
     enableSorting: false,
     enableHiding: false,
     // w-px: shrink to the buttons in the auto layout (no maxBodyHeight).
-    meta: { className: cn("w-px whitespace-nowrap text-right", pinned && pinnedRightClass), fixedWidth: true },
+    meta: {
+      className: cn("w-px whitespace-nowrap text-right", pinned && pinnedRightClass),
+      fixedWidth: true,
+      overflow: "visible",
+    },
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => (
       <DataTableRowActions row={row.original} actions={rowActions(row.original)} display={display} />

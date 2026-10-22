@@ -13,6 +13,13 @@ declare module '@tanstack/vue-table' {
      * spare width of a wide table (the checkbox and actions columns do this).
      */
     fixedWidth?: boolean
+    /**
+     * Long content in a body cell:
+     * - 'truncate' (default): one line with an ellipsis, full text in a tooltip on hover
+     * - 'wrap': wraps onto several lines
+     * - 'visible': rendered as is (checkbox and actions columns)
+     */
+    overflow?: 'truncate' | 'wrap' | 'visible'
   }
 }
 

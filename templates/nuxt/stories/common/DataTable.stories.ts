@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import type { ColumnFiltersState, PaginationState, SortingState } from '@tanstack/vue-table'
+import type { ColumnDef, ColumnFiltersState, PaginationState, SortingState } from '@tanstack/vue-table'
 import type { ConcreteComponent } from 'vue'
 import type { RowAction } from '@/components/common/data-table/types'
 import type { Payment } from '../_data/payments'
@@ -145,6 +145,35 @@ export const StickyHeaderAndScroll: Story = {
       </DataTable>
     `,
   }),
+}
+
+type LongPayment = Payment & { note: string }
+
+const longPayments: LongPayment[] = payments.map((payment, i) => ({
+  ...payment,
+  customer: i % 3 === 0 ? `${payment.customer} International Holdings Corporation Limited` : payment.customer,
+  note: i % 2 === 0
+    ? 'Customer asked to split the invoice into two payments and to send the receipt to the finance team.'
+    : '—',
+}))
+
+const longColumns: ColumnDef<LongPayment>[] = [
+  ...(paymentColumns as ColumnDef<LongPayment>[]),
+  { accessorKey: 'note', header: 'Note', size: 260, meta: { label: 'Note', overflow: 'wrap' } },
+]
+
+/**
+ * Long values are cut with an ellipsis (hover to read the full text) instead of
+ * spilling over the next column. The Note column uses `meta.overflow: 'wrap'`.
+ */
+export const LongContent: Story = {
+  args: {
+    columns: longColumns,
+    data: longPayments,
+    maxBodyHeight: 420,
+    rowActions,
+    rowActionsDisplay: 'inline',
+  },
 }
 
 export const RowClick: Story = {

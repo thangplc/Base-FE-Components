@@ -184,6 +184,12 @@ Trong `columns`, có thể dùng thêm:
 - `meta.className`: class cho cả ô header lẫn ô body, ví dụ `"text-right"`.
 - `size`: độ rộng cột, dùng khi có `maxBodyHeight`. Khi bảng rộng hơn tổng `size`, phần dư chỉ chia cho các cột dữ liệu theo tỷ lệ. Cột checkbox và cột action giữ nguyên độ rộng.
 - `meta.fixedWidth: true`: giữ đúng `size` cho cột đó, không nhận thêm phần dư (ví dụ cột Status, cột ngày).
+- `meta.overflow`: cách xử lý nội dung dài trong ô:
+  - `"truncate"` (mặc định): một dòng, cắt bằng `…`; rê chuột vào ô bị cắt thì hiện tooltip đầy đủ nội dung. Bảng chỉ dùng một tooltip chung, nên nhẹ dù có nhiều ô.
+  - `"wrap"`: xuống nhiều dòng (hợp với cột mô tả, ghi chú).
+  - `"visible"`: giữ nguyên (cột checkbox và cột action dùng mặc định này).
+
+  Muốn cắt chữ thì cột phải có độ rộng giới hạn. Khi có `maxBodyHeight` thì luôn có giới hạn. Ở layout thường, cột tự giãn theo nội dung, nên cần tự giới hạn bằng `meta.className`, ví dụ `"max-w-60"`.
 - `enableSorting: false` / `enableGlobalFilter: false`: tắt sort hoặc tìm kiếm cho cột đó.
 - `sortableHeader("Tên")`: tạo nhanh header có nút sort.
 
