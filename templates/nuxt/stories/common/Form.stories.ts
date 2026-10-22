@@ -25,6 +25,7 @@ const schema = z.object({
     // No `path`: the field reads its error at its own path.
     .refine(range => range.from && range.to, 'Pick both a start and an end day'),
   channels: z.array(z.string()).min(1, 'Pick at least one channel'),
+  skills: z.array(z.string()).min(2, 'Pick at least 2 skills'),
   terms: z.boolean().refine(Boolean, 'You must accept the terms'),
 })
 
@@ -42,7 +43,7 @@ export const AllFields: Story = {
     setup() {
       const { handleSubmit } = useForm({
         validationSchema: toTypedSchema(schema),
-        initialValues: { email: '', plan: '', note: '', terms: false, channels: [] },
+        initialValues: { email: '', plan: '', note: '', terms: false, channels: [], skills: [] },
       })
       const plans = [
         { label: 'Free', value: 'free' },
@@ -55,7 +56,13 @@ export const AllFields: Story = {
         { value: 'push', label: 'Push' },
         { value: 'sms', label: 'SMS' },
       ]
-      return { plans, channels, onSubmit }
+      const skills = [
+        { label: 'React', value: 'react' },
+        { label: 'Vue', value: 'vue' },
+        { label: 'TypeScript', value: 'ts' },
+        { label: 'Node.js', value: 'node' },
+      ]
+      return { plans, channels, skills, onSubmit }
     },
     template: `
       <form class="w-96" novalidate @submit="onSubmit">
@@ -78,6 +85,7 @@ export const AllFields: Story = {
             orientation="horizontal"
             :options="channels"
           />
+          <FormSelect name="skills" label="Skills" multiple creatable :options="skills" />
           <FormSwitch name="terms" label="Accept terms" />
           <Button type="submit">Submit</Button>
         </FieldGroup>

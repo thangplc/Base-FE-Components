@@ -28,6 +28,7 @@ const schema = z.object({
     // No `path`: react-hook-form re-validates on change only at the field's own path.
     .refine((range) => range.from && range.to, "Pick both a start and an end day"),
   channels: z.array(z.string()).min(1, "Pick at least one channel"),
+  skills: z.array(z.string()).min(2, "Pick at least 2 skills"),
   terms: z.boolean().refine(Boolean, "You must accept the terms"),
 })
 
@@ -36,7 +37,7 @@ type Values = z.infer<typeof schema>
 function DemoForm() {
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", plan: "", note: "", terms: false, channels: [] },
+    defaultValues: { email: "", plan: "", note: "", terms: false, channels: [], skills: [] },
   })
 
   return (
@@ -82,6 +83,19 @@ function DemoForm() {
             { value: "email", label: "Email" },
             { value: "push", label: "Push" },
             { value: "sms", label: "SMS" },
+          ]}
+        />
+        <FormSelect
+          control={form.control}
+          name="skills"
+          label="Skills"
+          multiple
+          creatable
+          options={[
+            { label: "React", value: "react" },
+            { label: "Vue", value: "vue" },
+            { label: "TypeScript", value: "ts" },
+            { label: "Node.js", value: "node" },
           ]}
         />
         <FormSwitch control={form.control} name="terms" label="Accept terms" />
