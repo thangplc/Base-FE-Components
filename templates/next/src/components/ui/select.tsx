@@ -59,8 +59,10 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
-  align = "center",
+  // Open below the trigger (flips up when there is no room) instead of
+  // Radix's "item-aligned", which covers the trigger.
+  position = "popper",
+  align = "start",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (

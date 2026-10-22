@@ -18,8 +18,10 @@ defineOptions({
 const props = withDefaults(
   defineProps<SelectContentProps & { class?: HTMLAttributes['class'] }>(),
   {
-    position: 'item-aligned',
-    align: 'center',
+    // Open below the trigger (flips up when there is no room) instead of
+    // Reka's "item-aligned", which covers the trigger.
+    position: 'popper',
+    align: 'start',
   },
 )
 const emits = defineEmits<SelectContentEmits>()
