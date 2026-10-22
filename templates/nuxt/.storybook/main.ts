@@ -10,7 +10,8 @@ const mocksDir = fileURLToPath(new URL('./mocks', import.meta.url))
 // explicitly; the few Nuxt composables / components they use come from
 // `#imports` / `#components`, which are mocked here.
 const config: StorybookConfig = {
-  stories: ['../app/**/*.stories.@(ts|mdx)'],
+  // Stories live outside app/ so components/ui stays copy-paste clean.
+  stories: ['../stories/**/*.stories.@(ts|mdx)'],
   addons: ['@storybook/addon-docs', '@storybook/addon-themes'],
   framework: {
     name: '@storybook/vue3-vite',

@@ -62,6 +62,40 @@ Sau đó:
 3. **Xoá trang demo**: Next xoá `src/app/(app)/form`, `users`; Nuxt xoá `pages/form.vue`, `pages/users`, `features/users`.
 4. Bắt đầu làm feature, chỉ việc ghép component.
 
+## Chỉ lấy folder `ui` sang project có sẵn
+
+Khi project đã có sẵn và bạn chỉ muốn lấy bộ base component, hãy copy những thứ sau.
+
+**Next / React**
+
+| Copy | Vào project mới |
+|---|---|
+| `src/components/ui/` | `src/components/ui/` |
+| `src/hooks/use-mobile.ts` | `src/hooks/use-mobile.ts` (Sidebar cần) |
+| `src/styles/tokens.css` | Import trong CSS chính, sau `@import "tailwindcss"` (xem `src/app/globals.css`) |
+| `components.json` | Gốc project, để sau này dùng `npx shadcn add` tiếp |
+
+```bash
+npm i radix-ui class-variance-authority cn lucide-react cmdk sonner next-themes tw-animate-css shadcn
+```
+
+**Nuxt / Vue**
+
+| Copy | Vào project mới |
+|---|---|
+| `app/components/ui/` | `app/components/ui/` |
+| `app/assets/css/tokens.css` + `main.css` | `app/assets/css/` (khai báo `css: ['~/assets/css/main.css']`) |
+| `components.json` | Gốc project |
+
+```bash
+npm i reka-ui class-variance-authority cn @lucide/vue @vueuse/core vue-sonner vee-validate @vee-validate/zod zod
+npm i -D shadcn-nuxt tailwindcss @tailwindcss/vite tw-animate-css shadcn
+```
+
+Sau đó thêm `shadcn-nuxt` vào `modules` và đặt `shadcn: { prefix: '', componentDir: '@/components/ui' }` như trong `nuxt.config.ts`.
+
+Hai template đều cần alias `@/` trỏ tới `src/` (Next) hoặc `app/` (Nuxt); đây là cấu hình mặc định của create-next-app và Nuxt 4.
+
 ## Phát triển chính kit này (monorepo)
 
 ```bash
@@ -121,6 +155,13 @@ npm run storybook:nuxt   # http://localhost:6007
 | `Common/*` | ConfirmDialog (kể cả async và lỗi), DataTable, EmptyState, Form, PageHeader, ThemeToggle |
 | `Layout/*` | AppShell: sidebar + header, đổi trang active qua `parameters` |
 
-Story nằm ngay cạnh component (`button.stories.tsx` / `Button.stories.ts`). Khi thêm component mới, bạn copy một story có sẵn rồi sửa lại.
+Story nằm trong folder `stories/` riêng của mỗi template, **không** nằm trong `components/`, nên `components/ui` luôn chỉ chứa code component và copy đi dùng được ngay:
+
+```
+templates/next/stories/{ui,common,layout}/*.stories.tsx
+templates/nuxt/stories/{ui,common,layout}/*.stories.ts
+```
+
+Khi thêm component mới, bạn copy một story có sẵn trong `stories/` rồi sửa lại (import qua alias `@/components/...`).
 
 Với Nuxt, Storybook chạy Vue thuần (không có Nuxt runtime). Component nào cần composable của Nuxt thì import tường minh từ `#imports` / `#components`, và hai module này được mock trong `.storybook/mocks/`.

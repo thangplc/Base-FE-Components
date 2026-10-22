@@ -19,6 +19,10 @@ export default defineNuxtConfig({
     prefix: '',
     componentDir: '@/components/ui',
   },
+  typescript: {
+    // Typecheck Storybook stories (they live outside app/) with the app types.
+    tsConfig: { include: ['../stories/**/*'] },
+  },
   colorMode: {
     classSuffix: '',
   },
