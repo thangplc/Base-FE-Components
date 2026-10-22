@@ -105,3 +105,22 @@ Nhớ thêm vào **cả hai** template để chúng không lệch nhau.
 | Layout | `AppShell` = Sidebar (thu gọn được) + Header (breadcrumb, theme toggle) | Giống bên Next (`layouts/default.vue`) |
 
 Chi tiết cách dùng nằm trong README của từng template và trong Storybook.
+
+## Storybook
+
+Mọi component đều có story, và mỗi component có thêm một trang **Docs** sinh tự động (bảng props + toàn bộ biến thể). Nút đổi theme trên toolbar giúp xem cả light lẫn dark.
+
+```bash
+npm run storybook:next   # http://localhost:6006
+npm run storybook:nuxt   # http://localhost:6007
+```
+
+| Nhóm | Nội dung |
+|---|---|
+| `UI/*` | Toàn bộ base component trong `components/ui` (31 component; Nuxt có thêm `Form (vee-validate)`), mỗi cái gồm các variant, size và state (disabled, invalid, loading...) |
+| `Common/*` | ConfirmDialog (kể cả async và lỗi), DataTable, EmptyState, Form, PageHeader, ThemeToggle |
+| `Layout/*` | AppShell: sidebar + header, đổi trang active qua `parameters` |
+
+Story nằm ngay cạnh component (`button.stories.tsx` / `Button.stories.ts`). Khi thêm component mới, bạn copy một story có sẵn rồi sửa lại.
+
+Với Nuxt, Storybook chạy Vue thuần (không có Nuxt runtime). Component nào cần composable của Nuxt thì import tường minh từ `#imports` / `#components`, và hai module này được mock trong `.storybook/mocks/`.

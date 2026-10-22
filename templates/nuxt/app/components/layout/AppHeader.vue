@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRoute } from '#imports'
 import { computed } from 'vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import {

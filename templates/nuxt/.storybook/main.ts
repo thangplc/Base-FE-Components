@@ -4,10 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 
 const appDir = fileURLToPath(new URL('../app', import.meta.url))
+const mocksDir = fileURLToPath(new URL('./mocks', import.meta.url))
 
-// Plain Vue + Vite (no Nuxt runtime): stories cover components/ui and
-// components/common, which import everything explicitly. Components that
-// use Nuxt composables (layout/, ThemeToggle) are previewed in the app.
+// Plain Vue + Vite (no Nuxt runtime). Components import everything
+// explicitly; the few Nuxt composables / components they use come from
+// `#imports` / `#components`, which are mocked here.
 const config: StorybookConfig = {
   stories: ['../app/**/*.stories.@(ts|mdx)'],
   addons: ['@storybook/addon-docs', '@storybook/addon-themes'],
@@ -20,6 +21,8 @@ const config: StorybookConfig = {
     config.resolve ??= {}
     config.resolve.alias = {
       ...config.resolve.alias,
+      '#imports': `${mocksDir}/nuxt-imports.ts`,
+      '#components': `${mocksDir}/nuxt-components.ts`,
       '@': appDir,
       '~': appDir,
     }

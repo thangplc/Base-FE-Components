@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { MonitorIcon, MoonIcon, SunIcon } from '@lucide/vue'
+import { useColorMode } from '#imports'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

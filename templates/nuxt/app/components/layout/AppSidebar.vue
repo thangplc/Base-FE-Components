@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { BoxIcon } from '@lucide/vue'
+import { NuxtLink } from '#components'
+import { useRoute } from '#imports'
 import {
   Sidebar,
   SidebarContent,

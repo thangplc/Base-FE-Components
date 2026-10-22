@@ -19,7 +19,10 @@ const props = withDefaults(defineProps<{
   confirmText?: string
   cancelText?: string
   variant?: 'default' | 'destructive'
-  /** May return a promise: the dialog stays open with a spinner until it settles. */
+  /**
+   * May return a promise: the dialog stays open with a spinner until it
+   * settles, and stays open (for a retry) if it rejects.
+   */
   onConfirm: () => void | Promise<void>
 }>(), {
   confirmText: 'Confirm',
@@ -45,6 +48,9 @@ async function handleConfirm() {
   try {
     await props.onConfirm()
     open.value = false
+  }
+  catch {
+    // Keep the dialog open so the user can retry; onConfirm reports the error.
   }
   finally {
     pending.value = false

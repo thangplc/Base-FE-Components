@@ -6,6 +6,8 @@ import { TooltipProvider } from "../src/components/ui/tooltip"
 import "../src/app/globals.css"
 
 const preview: Preview = {
+  // Every component gets an auto-generated Docs page (props table + all stories).
+  tags: ["autodocs"],
   parameters: {
     layout: "centered",
     controls: {

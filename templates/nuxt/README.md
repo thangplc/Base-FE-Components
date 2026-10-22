@@ -66,3 +66,4 @@ const columns: ColumnDef<User>[] = [
 - `app/assets/css/tokens.css` được sinh tự động từ `packages/tokens` của monorepo. Khi đã tách ra project riêng thì sửa trực tiếp file này.
 - `main.css` import `shadcn/tailwind.css` để có các variant `data-open:`, `data-checked:`... mà style `nova` cần.
 - Toast: `import { toast } from 'vue-sonner'`.
+- Trong `components/`, composable và component của Nuxt được import tường minh (`import { useRoute } from '#imports'`, `import { NuxtLink } from '#components'`), để Storybook mock được qua `.storybook/mocks/`.
