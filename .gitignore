@@ -4,3 +4,10 @@ node_modules
 .env*
 !.env.example
 storybook-static
+# Framework build output, at any depth (a stray `nuxt` run outside its
+# project creates .nuxt where it ran)
+.nuxt
+.output
+.nitro
+.data
+.next

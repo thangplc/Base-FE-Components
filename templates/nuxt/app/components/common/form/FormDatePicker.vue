@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import type { DateLike } from '../date-value'
+import type { DateLike } from '../date-picker/date-value'
 import { useField } from 'vee-validate'
 import { useId } from 'vue'
-import DatePicker from '../DatePicker.vue'
-import DateTimePicker from '../DateTimePicker.vue'
+import DatePicker from '../date-picker/DatePicker.vue'
+import DateTimePicker from '../date-picker/DateTimePicker.vue'
 import FormFieldLayout from './FormFieldLayout.vue'
 
 /**

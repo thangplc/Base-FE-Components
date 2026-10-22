@@ -135,7 +135,7 @@ Nhớ thêm vào **cả hai** template để chúng không lệch nhau.
 | Base (ui) | Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Label, Field, InputGroup, Dialog, AlertDialog, Sheet, DropdownMenu, Popover, Tooltip, Command, Sonner (toast), Card, Badge, Avatar, Table, Tabs, Breadcrumb, Pagination, Sidebar, ScrollArea, Separator, Skeleton, Spinner, Empty, Progress, Calendar | Giống bên Next, cộng thêm `form` (vee-validate) |
 | Form | `FormField` (render-prop generic), `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch`, `FormCheckboxGroup`, `FormDatePicker`, `FormDateRangePicker` | `FormFieldLayout` + các wrapper cùng tên |
 | Data | `DataTable`: search, sort, filter, cột action, chọn dòng, sticky header, phân trang, chế độ server-side (xem [mục DataTable](#datatable)) | Giống bên Next |
-| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle`, `TruncatedText` (xem [mục TruncatedText](#truncatedtext)), `CheckboxGroup`, `ProgressBar`, `Stepper`, `DatePicker`, `DateTimePicker`, `DateRangePicker` (xem [mục Form & tiến trình](#form--tiến-trình)) | Giống bên Next |
+| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle`, `TruncatedText` (xem [mục TruncatedText](#truncatedtext)), `CheckboxGroup`, `ProgressBar`, `Stepper`, `DatePicker`, `DateTimePicker`, `DateRangePicker`, `DateTimeRangePicker` trong `common/date-picker/` (xem [mục Date picker](#date-picker)) | Giống bên Next |
 | Layout | `AppShell` = Sidebar (thu gọn được) + Header (breadcrumb, theme toggle) | Giống bên Next (`layouts/default.vue`) |
 
 Chi tiết cách dùng nằm trong README của từng template và trong Storybook.
@@ -209,23 +209,46 @@ Story `Common/DataTable` có ví dụ cho từng tính năng, gồm cả một "
 | `Progress` | `value`, `max`, `size` (sm/default/lg), `variant` (default/success/warning/destructive), `indeterminate` |
 | `ProgressBar` | Progress kèm `label`, giá trị (`formatValue`, mặc định `42%`) và `description` |
 | `Stepper` | `steps` ({ title, description, icon, status: "error" }), `current`, `onStepClick` (Vue: `@step-click`; mặc định chỉ bấm được bước đã xong, hoặc tất cả với `allowJumpAhead`), `orientation` |
-| `DatePicker` / `DateTimePicker` | Popover + Calendar (react-day-picker / Reka). `value` / `onChange` (Vue: `v-model`); có `minDate`, `maxDate`, `locale` (mặc định `en-GB` → 22/10/2026; ngày đầu tuần theo locale), `clearable`, `placeholder`, `aria-invalid` / `invalid`, `valueFormat` (xem bên dưới). DateTimePicker có thêm ô giờ HH:mm (`minuteStep`); đổi ngày giữ nguyên giờ và ngược lại |
-| `DateRangePicker` | Giá trị `{ from, to }`, mỗi đầu theo `valueFormat`. Click lần 1 chọn `from`, lần 2 chọn `to` (chọn ngày trước `from` thì tự đảo), click tiếp là bắt đầu khoảng mới. `numberOfMonths` (mặc định 2), `minDate`, `maxDate`, `locale`, `clearable` |
+| `DatePicker`, `DateTimePicker`, `DateRangePicker`, `DateTimeRangePicker` | Xem [mục Date picker](#date-picker) |
 | `FormDatePicker` | DatePicker nối với react-hook-form / vee-validate. Thêm `withTime` (Vue: `with-time`) để thành DateTimePicker; các prop khác (`valueFormat`, `minDate`...) truyền thẳng xuống picker |
-| `FormDateRangePicker` | DateRangePicker trong form. Rule cho khoảng ngày đặt lên **chính object** (zod `.refine(...)` **không có `path`**): khi đang chọn, react-hook-form / vee-validate chỉ revalidate lỗi tại path của field (`period`), không phải `period.to` |
+| `FormDateRangePicker` | DateRangePicker trong form, `withTime` để thành DateTimeRangePicker. Rule cho khoảng ngày đặt lên **chính object** (zod `.refine(...)` **không có `path`**): khi đang chọn, react-hook-form / vee-validate chỉ revalidate lỗi tại path của field (`period`), không phải `period.to` |
 | `FormCheckboxGroup` | CheckboxGroup trong form; `label` thành legend của nhóm; hỗ trợ `separator` |
 
-**`valueFormat`: format của giá trị đầu ra** (DatePicker, DateTimePicker, DateRangePicker và các Form wrapper). Component nhận lại đúng format đó qua `value` / `v-model`:
+## Date picker
+
+Bốn component trong `components/common/date-picker/` (Next: react-day-picker, Nuxt: Reka Calendar / RangeCalendar), cùng API. Logic không phụ thuộc framework (format, timezone, giới hạn giờ, mask, preset) nằm trong `date-value.ts` và `date-time.ts`, giống nhau ở hai template.
+
+| Component | Giá trị | Popover |
+|---|---|---|
+| `DatePicker` | 1 ngày | Lịch; chọn xong tự đóng |
+| `DateTimePicker` | ngày + giờ | Lịch + cột giờ / phút (/ giây / AM-PM) cuộn được, footer **Now** / **Done**; đổi ngày giữ nguyên giờ và ngược lại |
+| `DateRangePicker` | `{ from, to }` | 2 tháng (`numberOfMonths`), preset bên trái. Click 1 chọn `from`, click 2 chọn `to` (ngày sớm hơn thì tự đảo), click tiếp là khoảng mới |
+| `DateTimeRangePicker` | `{ from, to }` kèm giờ | Lịch 1 tháng + cột **Start** / **End**; `to` mặc định 23:59; cùng ngày thì giờ kết thúc không thể trước giờ bắt đầu |
+
+| Prop | Áp dụng | Ý nghĩa |
+|---|---|---|
+| `value` / `onChange` (Vue: `v-model`), `valueFormat` | tất cả | Format đầu ra, xem bảng bên dưới |
+| `minDate` / `maxDate` | tất cả | Giới hạn theo ngày; với picker có giờ, giờ của `minDate` / `maxDate` cũng chặn trong chính ngày đó (vd `minDate={new Date()}` = không chọn quá khứ) |
+| `disabledDates` | tất cả | Mảng ngày, hoặc hàm `(day) => boolean` (cuối tuần, ngày lễ...) |
+| `displayFormat` | tất cả | Pattern cho chữ hiển thị, vd `"dd/MM/yyyy HH:mm"`; mặc định theo `locale` |
+| `editable` | tất cả | Cho gõ tay, có mask theo `displayFormat` (mặc định `dd/MM/yyyy[ HH:mm]`): gõ `151020261430` → `15/10/2026 14:30`. Enter / blur để xác nhận; giá trị sai hoặc ngày bị chặn thì báo đỏ khi Enter, tự trả lại khi blur. Range gõ `dd/MM/yyyy – dd/MM/yyyy` |
+| `timeZone` | tất cả | IANA, vd `"America/New_York"`: hiển thị và chọn theo giờ ở đó (có tính DST). `Date` / `"iso"` / `"timestamp"` vẫn là thời điểm tuyệt đối; pattern là giờ treo tường ở múi đó. Tên múi giờ hiện ở footer |
+| `locale`, `placeholder`, `clearable`, `disabled`, `labels` | tất cả | `labels` để dịch Now / Done / Start / End / Clear |
+| `minuteStep`, `secondStep`, `withSeconds`, `hourCycle` (24 / 12) | có giờ | Cột giờ; 12h thêm cột AM/PM |
+| `minTime` / `maxTime` | có giờ | Khung giờ mỗi ngày, vd `"08:00"`–`"17:30"`; giờ ngoài khung bị disable, ngày không còn giờ hợp lệ (hôm nay sau 17:30) cũng bị disable |
+| `numberOfMonths`, `maxDays`, `presets` | range | `maxDays`: số ngày tối đa tính cả 2 đầu. `presets`: `true` (Today, Yesterday, Last 7 / 30 days, This / Last month), `createRangePresets({ today: "Hôm nay", ... })` để dịch, hoặc mảng `{ label, range: (today) => ({ from, to }) }` tự định nghĩa |
+
+**`valueFormat`: format của giá trị đầu ra** (cả 4 picker và các Form wrapper). Component nhận lại đúng format đó qua `value` / `v-model`:
 
 | `valueFormat` | Giá trị (chọn 15/10/2026 09:45, giờ VN) |
 |---|---|
 | `"date"` (mặc định) | `Date` |
 | `"iso"` | `"2026-10-15T02:45:00.000Z"` (UTC) |
 | `"timestamp"` | `1792032300000` |
-| pattern, vd `"yyyy-MM-dd"`, `"dd/MM/yyyy HH:mm"`, `"yyyy-MM-dd'T'HH:mm"` | `"2026-10-15"`, `"15/10/2026 09:45"`... (giờ địa phương; token `yyyy MM M dd d HH H mm ss`, chữ cố định đặt trong `'...'`) |
+| pattern, vd `"yyyy-MM-dd"`, `"dd/MM/yyyy HH:mm"`, `"yyyy-MM-dd'T'HH:mm"` | `"2026-10-15"`, `"15/10/2026 09:45"`... (giờ địa phương, hoặc theo `timeZone`; token `yyyy MM M dd d HH H hh h mm ss a`, chữ cố định đặt trong `'...'`) |
 | `{ format, parse }` | Tuỳ ý, vd dayjs hoặc Unix timestamp tính bằng giây |
 
-Field chỉ có ngày thì nên dùng `"yyyy-MM-dd"`: `"iso"` đổi nửa đêm giờ địa phương sang UTC, nên ở VN sẽ ra ngày hôm trước (`…-14T17:00:00Z`). Hàm `formatDateValue` / `parseDateValue` nằm trong `components/common/date-value.ts` nếu cần dùng ở chỗ khác.
+Field chỉ có ngày thì nên dùng `"yyyy-MM-dd"`: `"iso"` đổi nửa đêm giờ địa phương sang UTC, nên ở VN sẽ ra ngày hôm trước (`…-14T17:00:00Z`). Các hàm `formatDateValue`, `parseDateValue`, `formatDatePattern`, `parseDatePattern`, `toZonedTime`, `fromZonedTime` được export từ `components/common/date-picker` nếu cần dùng ở chỗ khác.
 
 ## TruncatedText
 

@@ -6,10 +6,12 @@ import {
   DatePicker,
   DateRangePicker,
   DateTimePicker,
+  DateTimeRangePicker,
   type DateLike,
   type DatePickerProps,
   type DateRangePickerProps,
   type DateTimePickerProps,
+  type DateTimeRangePickerProps,
 } from "@/components/common/date-picker"
 import { FormField, type FormFieldBaseProps } from "./form-field"
 
@@ -62,7 +64,10 @@ export function FormDatePicker<T extends FieldValues>({
 }
 
 type FormDateRangePickerProps<T extends FieldValues> = FormFieldBaseProps<T> &
-  Omit<DateRangePickerProps, Controlled>
+  Omit<DateTimeRangePickerProps, Controlled> & {
+    /** Also pick start / end times (DateTimeRangePicker). */
+    withTime?: boolean
+  }
 
 /**
  * `{ from, to }` field; each side has the shape set by `valueFormat`.
@@ -76,6 +81,7 @@ export function FormDateRangePicker<T extends FieldValues>({
   label,
   description,
   className,
+  withTime = false,
   ...pickerProps
 }: FormDateRangePickerProps<T>) {
   return (
@@ -86,19 +92,20 @@ export function FormDateRangePicker<T extends FieldValues>({
       description={description}
       className={className}
     >
-      {(field, { id, invalid }) => (
-        <DateRangePicker<DateLike>
-          {...pickerProps}
-          id={id}
-          ref={field.ref}
-          value={field.value}
-          onChange={(value) => {
+      {(field, { id, invalid }) => {
+        const props: DateRangePickerProps<DateLike> = {
+          ...pickerProps,
+          id,
+          ref: field.ref,
+          value: field.value,
+          onChange: (value) => {
             field.onChange(value ?? null)
             field.onBlur()
-          }}
-          aria-invalid={invalid}
-        />
-      )}
+          },
+          "aria-invalid": invalid,
+        }
+        return withTime ? <DateTimeRangePicker {...props} /> : <DateRangePicker {...props} />
+      }}
     </FormField>
   )
 }
