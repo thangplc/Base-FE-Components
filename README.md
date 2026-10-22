@@ -135,7 +135,7 @@ Nhớ thêm vào **cả hai** template để chúng không lệch nhau.
 | Base (ui) | Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Label, Field, InputGroup, Dialog, AlertDialog, Sheet, DropdownMenu, Popover, Tooltip, Command, Sonner (toast), Card, Badge, Avatar, Table, Tabs, Breadcrumb, Pagination, Sidebar, ScrollArea, Separator, Skeleton, Spinner, Empty | Giống bên Next, cộng thêm `form` (vee-validate) |
 | Form | `FormField` (render-prop generic), `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch` | `FormFieldLayout`, `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch` |
 | Data | `DataTable`: search, sort, filter, cột action, chọn dòng, sticky header, phân trang, chế độ server-side (xem [mục DataTable](#datatable)) | Giống bên Next |
-| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle` | Giống bên Next |
+| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle`, `TruncatedText` (xem [mục TruncatedText](#truncatedtext)) | Giống bên Next |
 | Layout | `AppShell` = Sidebar (thu gọn được) + Header (breadcrumb, theme toggle) | Giống bên Next (`layouts/default.vue`) |
 
 Chi tiết cách dùng nằm trong README của từng template và trong Storybook.
@@ -185,7 +185,7 @@ Trong `columns`, có thể dùng thêm:
 - `size`: độ rộng cột, dùng khi có `maxBodyHeight`. Khi bảng rộng hơn tổng `size`, phần dư chỉ chia cho các cột dữ liệu theo tỷ lệ. Cột checkbox và cột action giữ nguyên độ rộng.
 - `meta.fixedWidth: true`: giữ đúng `size` cho cột đó, không nhận thêm phần dư (ví dụ cột Status, cột ngày).
 - `meta.overflow`: cách xử lý nội dung dài trong ô:
-  - `"truncate"` (mặc định): một dòng, cắt bằng `…`; rê chuột vào ô bị cắt thì hiện tooltip đầy đủ nội dung. Bảng chỉ dùng một tooltip chung, nên nhẹ dù có nhiều ô.
+  - `"truncate"` (mặc định): một dòng, cắt bằng `…`; rê chuột vào ô bị cắt thì hiện tooltip đầy đủ nội dung. Đây chính là `TruncatedText`, dùng chung tooltip của cả app.
   - `"wrap"`: xuống nhiều dòng (hợp với cột mô tả, ghi chú).
   - `"visible"`: giữ nguyên (cột checkbox và cột action dùng mặc định này).
 
@@ -198,6 +198,21 @@ Trong `columns`, có thể dùng thêm:
 - **Server-side:** điều khiển state từ ngoài và bật `manualSorting` / `manualFiltering` / `manualPagination`, truyền thêm `rowCount`. Khi search hoặc filter thay đổi, bảng tự quay về trang 1.
 
 Story `Common/DataTable` có ví dụ cho từng tính năng, gồm cả một "API" giả lập 1.234 dòng.
+
+## TruncatedText
+
+Cắt chữ bằng `…` khi không đủ chỗ; rê chuột vào chữ **bị cắt** thì hiện tooltip đầy đủ nội dung, còn chữ vừa đủ thì không hiện gì. Dùng được ở bất kỳ đâu: ô bảng, Card, Sidebar, tên file, item của menu...
+
+```tsx
+<TruncatedText>{user.company}</TruncatedText>                // 1 dòng
+<TruncatedText lines={2}>{product.description}</TruncatedText> // tối đa 2 dòng (line-clamp, 2–6)
+<TruncatedText tooltip={false}>{label}</TruncatedText>         // chỉ cắt, không tooltip
+```
+
+- Cả app chỉ có **một tooltip** và một listener, do `TruncateTooltipProvider` quản lý. Provider này đặt sẵn trong `providers.tsx` (Next) và `app.vue` (Nuxt), nên gắn `TruncatedText` ở hàng nghìn chỗ vẫn nhẹ.
+- Không muốn dùng component thì gắn thẳng attribute `data-truncate` cùng class `truncate` (hoặc `line-clamp-N`) lên phần tử có sẵn.
+- Phần tử cha phải giới hạn độ rộng, ví dụ ô bảng, `w-48`, hoặc `flex-1` trong một hàng flex. `TruncatedText` đã có sẵn `min-w-0`.
+- Tooltip hiển thị chữ thuần, lấy từ `innerText`. Nếu quên đặt Provider, chữ vẫn bị cắt nhưng không có tooltip, và ở chế độ dev sẽ có cảnh báo trong console.
 
 ## Storybook
 

@@ -34,8 +34,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { TruncatedText } from "@/components/common/truncated-text"
 import { cn } from "@/lib/utils"
-import { DataTableCellTooltip } from "./data-table-cell-tooltip"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableRowActions, estimateRowActionsWidth } from "./data-table-row-actions"
 import { DataTableToolbar } from "./data-table-toolbar"
@@ -301,8 +301,6 @@ function DataTableContent<TData, TValue>({
   const visibleColumns = table.getVisibleLeafColumns()
   const rows = table.getRowModel().rows
 
-  const rootRef = useRef<HTMLDivElement>(null)
-
   // Whether the columns overflow horizontally; drives the pinned actions
   // column through `data-overflow-x` (see pinnedRightClass).
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -378,11 +376,9 @@ function DataTableContent<TData, TValue>({
 
   return (
     <div
-      ref={rootRef}
       className={cn("group/table flex flex-col gap-4", className)}
       data-overflow-x={overflowX || undefined}
     >
-      <DataTableCellTooltip containerRef={rootRef} />
       <DataTableToolbar
         table={table}
         searchPlaceholder={searchPlaceholder}
@@ -523,9 +519,9 @@ function columnWidths<TData>(columns: Column<TData, unknown>[], available: numbe
 
 /**
  * Body cell content per `meta.overflow`. `truncate` cuts long text with an
- * ellipsis (needs a bounded width: always true with `maxBodyHeight`; in the
- * auto layout columns grow to fit, unless you cap them, e.g. `max-w-60`
- * in `meta.className`). DataTableCellTooltip shows the full text.
+ * ellipsis via TruncatedText, full text in the app-wide tooltip (needs a
+ * bounded width: always true with `maxBodyHeight`; in the auto layout
+ * columns grow to fit, unless you cap them, e.g. `max-w-60` in `meta.className`).
  */
 function CellContent({
   overflow = "truncate",
@@ -535,14 +531,8 @@ function CellContent({
   children: ReactNode
 }) {
   if (overflow === "visible") return children
-  return (
-    <div
-      data-slot={overflow === "truncate" ? "cell-content" : undefined}
-      className={overflow === "truncate" ? "truncate" : "break-words whitespace-normal"}
-    >
-      {children}
-    </div>
-  )
+  if (overflow === "truncate") return <TruncatedText>{children}</TruncatedText>
+  return <div className="break-words whitespace-normal">{children}</div>
 }
 
 function selectedOriginals<TData>(table: TanstackTable<TData>, selection: RowSelectionState) {

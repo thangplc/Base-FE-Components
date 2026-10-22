@@ -34,8 +34,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import TruncatedText from '@/components/common/TruncatedText.vue'
 import { cn, valueUpdater } from '@/lib/utils'
-import DataTableCellTooltip from './DataTableCellTooltip.vue'
 import DataTablePagination from './DataTablePagination.vue'
 import { columnWidths } from './column-widths'
 import DataTableToolbar from './DataTableToolbar.vue'
@@ -285,15 +285,13 @@ const tableWidth = computed(() => `${widths.value.reduce((sum, w) => sum + w, 0)
 
 /**
  * Body cell content per `meta.overflow`. 'truncate' cuts long text with an
- * ellipsis (needs a bounded width: always true with `maxBodyHeight`; in the
- * auto layout columns grow to fit, unless you cap them, e.g. `max-w-60` in
- * `meta.className`). DataTableCellTooltip shows the full text.
+ * ellipsis via TruncatedText, full text in the app-wide tooltip (needs a
+ * bounded width: always true with `maxBodyHeight`; in the auto layout
+ * columns grow to fit, unless you cap them, e.g. `max-w-60` in `meta.className`).
  */
 function overflowOf(cell: Cell<TData, unknown>) {
   return cell.column.columnDef.meta?.overflow ?? 'truncate'
 }
-
-const root = ref<HTMLDivElement>()
 
 function onRowClick(event: MouseEvent, row: Row<TData>) {
   if (!props.onRowClick)
@@ -314,8 +312,7 @@ function syncHeaderScroll(event: Event) {
 </script>
 
 <template>
-  <div ref="root" :class="cn('group/table flex flex-col gap-4', props.class)" :data-overflow-x="overflowX || undefined">
-    <DataTableCellTooltip :container="root" />
+  <div :class="cn('group/table flex flex-col gap-4', props.class)" :data-overflow-x="overflowX || undefined">
     <DataTableToolbar
       :table="table"
       :search-placeholder="searchPlaceholder"
@@ -378,11 +375,10 @@ function syncHeaderScroll(event: Event) {
               >
                 <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="cell.column.columnDef.meta?.className">
                   <FlexRender v-if="overflowOf(cell) === 'visible'" :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  <div
-                    v-else
-                    :data-slot="overflowOf(cell) === 'truncate' ? 'cell-content' : undefined"
-                    :class="overflowOf(cell) === 'truncate' ? 'truncate' : 'break-words whitespace-normal'"
-                  >
+                  <TruncatedText v-else-if="overflowOf(cell) === 'truncate'">
+                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                  </TruncatedText>
+                  <div v-else class="break-words whitespace-normal">
                     <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
                   </div>
                 </TableCell>
@@ -437,11 +433,10 @@ function syncHeaderScroll(event: Event) {
               >
                 <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="cell.column.columnDef.meta?.className">
                   <FlexRender v-if="overflowOf(cell) === 'visible'" :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  <div
-                    v-else
-                    :data-slot="overflowOf(cell) === 'truncate' ? 'cell-content' : undefined"
-                    :class="overflowOf(cell) === 'truncate' ? 'truncate' : 'break-words whitespace-normal'"
-                  >
+                  <TruncatedText v-else-if="overflowOf(cell) === 'truncate'">
+                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                  </TruncatedText>
+                  <div v-else class="break-words whitespace-normal">
                     <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
                   </div>
                 </TableCell>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TruncateTooltipProvider from '@/components/common/TruncateTooltipProvider.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { siteConfig } from '@/config/site'
 
@@ -10,8 +11,10 @@ useHead({
 
 <template>
   <NuxtRouteAnnouncer />
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
-  <Toaster rich-colors close-button />
+  <TruncateTooltipProvider>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+    <Toaster rich-colors close-button />
+  </TruncateTooltipProvider>
 </template>

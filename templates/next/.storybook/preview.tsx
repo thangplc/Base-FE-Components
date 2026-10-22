@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/nextjs-vite"
 import { withThemeByClassName } from "@storybook/addon-themes"
 
+import { TruncateTooltipProvider } from "../src/components/common/truncated-text"
 import { Toaster } from "../src/components/ui/sonner"
 import { TooltipProvider } from "../src/components/ui/tooltip"
 import "../src/app/globals.css"
@@ -25,8 +26,10 @@ const preview: Preview = {
     }),
     (Story) => (
       <TooltipProvider>
-        <Story />
-        <Toaster richColors />
+        <TruncateTooltipProvider>
+          <Story />
+          <Toaster richColors />
+        </TruncateTooltipProvider>
       </TooltipProvider>
     ),
   ],
