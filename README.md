@@ -182,7 +182,8 @@ Ví dụ: `rowActionsDisplay="menu"` và gắn `display: "inline"` cho Edit/Dele
 Trong `columns`, có thể dùng thêm:
 - `meta.label`: tên cột trong menu "View".
 - `meta.className`: class cho cả ô header lẫn ô body, ví dụ `"text-right"`.
-- `size`: độ rộng cột, dùng khi có `maxBodyHeight`.
+- `size`: độ rộng cột, dùng khi có `maxBodyHeight`. Khi bảng rộng hơn tổng `size`, phần dư chỉ chia cho các cột dữ liệu theo tỷ lệ. Cột checkbox và cột action giữ nguyên độ rộng.
+- `meta.fixedWidth: true`: giữ đúng `size` cho cột đó, không nhận thêm phần dư (ví dụ cột Status, cột ngày).
 - `enableSorting: false` / `enableGlobalFilter: false`: tắt sort hoặc tìm kiếm cho cột đó.
 - `sortableHeader("Tên")`: tạo nhanh header có nút sort.
 

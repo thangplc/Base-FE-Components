@@ -24,6 +24,7 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
+import { useResizeObserver } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -36,6 +37,7 @@ import {
 } from '@/components/ui/table'
 import { cn, valueUpdater } from '@/lib/utils'
 import DataTablePagination from './DataTablePagination.vue'
+import { columnWidths } from './column-widths'
 import DataTableToolbar from './DataTableToolbar.vue'
 import { filterFnByType } from './filter-fns'
 import { actionsColumn, selectionColumn } from './helpers'
@@ -251,9 +253,16 @@ const skeletonRows = computed(() => Math.min(pagination.value!.pageSize, 10))
 const bodyHeight = computed(() =>
   typeof props.maxBodyHeight === 'number' ? `${props.maxBodyHeight}px` : props.maxBodyHeight,
 )
-// Shared widths for the split header/body tables (TanStack default size: 150).
-const minWidth = computed(() => `${visibleColumns.value.reduce((sum, column) => sum + column.getSize(), 0)}px`)
+// Shared widths for the split header/body tables (TanStack default size: 150);
+// spare width goes to the data columns only (see columnWidths).
 const headerScroller = ref<HTMLDivElement>()
+const bodyScroller = ref<HTMLDivElement>()
+const available = ref(0)
+useResizeObserver(bodyScroller, () => {
+  available.value = bodyScroller.value?.clientWidth ?? 0
+})
+const widths = computed(() => columnWidths(visibleColumns.value, available.value))
+const tableWidth = computed(() => `${widths.value.reduce((sum, w) => sum + w, 0)}px`)
 
 function onRowClick(event: MouseEvent, row: Row<TData>) {
   if (!props.onRowClick)
@@ -296,9 +305,9 @@ function syncHeaderScroll(event: Event) {
         both the same width; horizontal body scroll drives the header.
       -->
       <div ref="headerScroller" class="overflow-hidden [scrollbar-gutter:stable]">
-        <table class="w-full table-fixed caption-bottom text-sm" :style="{ minWidth }">
+        <table class="table-fixed caption-bottom text-sm" :style="{ width: tableWidth }">
           <colgroup>
-            <col v-for="column in visibleColumns" :key="column.id" :style="{ width: `${column.getSize()}px` }">
+            <col v-for="(column, i) in visibleColumns" :key="column.id" :style="{ width: `${widths[i]}px` }">
           </colgroup>
           <TableHeader>
             <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
@@ -314,10 +323,10 @@ function syncHeaderScroll(event: Event) {
           </TableHeader>
         </table>
       </div>
-      <div class="overflow-auto [scrollbar-gutter:stable]" :style="{ maxHeight: bodyHeight }" @scroll="syncHeaderScroll">
-        <table class="w-full table-fixed caption-bottom text-sm" :style="{ minWidth }">
+      <div ref="bodyScroller" class="overflow-auto [scrollbar-gutter:stable]" :style="{ maxHeight: bodyHeight }" @scroll="syncHeaderScroll">
+        <table class="table-fixed caption-bottom text-sm" :style="{ width: tableWidth }">
           <colgroup>
-            <col v-for="column in visibleColumns" :key="column.id" :style="{ width: `${column.getSize()}px` }">
+            <col v-for="(column, i) in visibleColumns" :key="column.id" :style="{ width: `${widths[i]}px` }">
           </colgroup>
           <TableBody>
             <template v-if="isLoading">

@@ -8,6 +8,11 @@ declare module "@tanstack/react-table" {
     label?: string
     /** Extra classes for this column's header and body cells, e.g. "text-right". */
     className?: string
+    /**
+     * With `maxBodyHeight`: keep exactly `size` px instead of sharing the
+     * spare width of a wide table (the checkbox and actions columns do this).
+     */
+    fixedWidth?: boolean
   }
 }
 

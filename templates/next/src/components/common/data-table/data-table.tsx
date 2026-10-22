@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useMemo, useRef, useState, type ReactNode } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import {
   flexRender,
   functionalUpdate,
@@ -19,6 +19,7 @@ import {
   type Row,
   type RowSelectionState,
   type SortingState,
+  type Column,
   type Table as TanstackTable,
   type Updater,
   type VisibilityState,
@@ -395,7 +396,8 @@ function DataTableContent<TData, TValue>({
  * Header and body are two tables sharing the same column widths, so the
  * vertical scrollbar only spans the body. `scrollbar-gutter: stable` keeps
  * both the same width; horizontal scrolling of the body drives the header.
- * Column widths come from `size` in the column defs (TanStack default 150).
+ * Column widths come from `size` in the column defs (TanStack default 150);
+ * spare width goes to the data columns only (see `columnWidths`).
  */
 function ScrollBodyTable<TData>({
   table,
@@ -411,39 +413,75 @@ function ScrollBodyTable<TData>({
   "use no memo"
 
   const headerRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [available, setAvailable] = useState(0)
+
+  useEffect(() => {
+    const body = bodyRef.current
+    if (!body) return
+    // Fires once on observe, then on every resize.
+    const observer = new ResizeObserver(() => setAvailable(body.clientWidth))
+    observer.observe(body)
+    return () => observer.disconnect()
+  }, [])
+
   const columns = table.getVisibleLeafColumns()
+  const widths = columnWidths(columns, available)
+  const width = widths.reduce((sum, w) => sum + w, 0)
   const colgroup = (
     <colgroup>
-      {columns.map((column) => (
-        <col key={column.id} style={{ width: column.getSize() }} />
+      {columns.map((column, i) => (
+        <col key={column.id} style={{ width: widths[i] }} />
       ))}
     </colgroup>
   )
-  const tableClass = "w-full table-fixed caption-bottom text-sm"
-  const minWidth = table.getVisibleLeafColumns().reduce((sum, column) => sum + column.getSize(), 0)
+  const tableClass = "table-fixed caption-bottom text-sm"
 
   return (
     <div className="overflow-hidden rounded-lg border">
       <div ref={headerRef} className="overflow-hidden [scrollbar-gutter:stable]">
-        <table className={tableClass} style={{ minWidth }}>
+        <table className={tableClass} style={{ width }}>
           {colgroup}
           <TableHeader>{header}</TableHeader>
         </table>
       </div>
       <div
+        ref={bodyRef}
         className="overflow-auto [scrollbar-gutter:stable]"
         style={{ maxHeight: maxBodyHeight }}
         onScroll={(event) => {
           if (headerRef.current) headerRef.current.scrollLeft = event.currentTarget.scrollLeft
         }}
       >
-        <table className={tableClass} style={{ minWidth }}>
+        <table className={tableClass} style={{ width }}>
           {colgroup}
           <TableBody>{body}</TableBody>
         </table>
       </div>
     </div>
   )
+}
+
+/**
+ * Column widths for the split tables: each column's `size`, plus — when the
+ * container is wider — the spare width shared by the columns that are not
+ * `meta.fixedWidth`, in proportion to their size. (A plain `width: 100%`
+ * fixed-layout table would stretch every column, actions included.)
+ */
+function columnWidths<TData>(columns: Column<TData, unknown>[], available: number) {
+  const sizes = columns.map((column) => column.getSize())
+  const spare = available - sizes.reduce((sum, size) => sum + size, 0)
+  const flexible = (column: Column<TData, unknown>) => !column.columnDef.meta?.fixedWidth
+  const flexTotal = columns.reduce((sum, column, i) => sum + (flexible(column) ? sizes[i] : 0), 0)
+  if (spare <= 0 || flexTotal === 0) return sizes
+  const widths = columns.map((column, i) =>
+    flexible(column) ? sizes[i] + Math.floor((spare * sizes[i]) / flexTotal) : sizes[i]
+  )
+  // Whole pixels only (no stray horizontal scrollbar); the rounding rest
+  // goes to the last flexible column.
+  const last = columns.findLastIndex(flexible)
+  widths[last] += available - widths.reduce((sum, w) => sum + w, 0)
+  return widths
 }
 
 function selectedOriginals<TData>(table: TanstackTable<TData>, selection: RowSelectionState) {
@@ -460,7 +498,7 @@ function selectionColumn<TData, TValue>(): ColumnDef<TData, TValue> {
     size: 40,
     enableSorting: false,
     enableHiding: false,
-    meta: { className: "w-10" },
+    meta: { className: "w-10", fixedWidth: true },
     header: ({ table }) => (
       <Checkbox
         aria-label="Select all rows on this page"
@@ -498,7 +536,7 @@ function actionsColumn<TData, TValue>(
     enableSorting: false,
     enableHiding: false,
     // w-px: shrink to the buttons in the auto layout (no maxBodyHeight).
-    meta: { className: cn("w-px whitespace-nowrap text-right", pinned && pinnedRightClass) },
+    meta: { className: cn("w-px whitespace-nowrap text-right", pinned && pinnedRightClass), fixedWidth: true },
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => (
       <DataTableRowActions row={row.original} actions={rowActions(row.original)} display={display} />
