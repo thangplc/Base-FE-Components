@@ -4,6 +4,7 @@ import type { ProgressVariants } from '@/components/ui/progress'
 import { computed } from 'vue'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import ProgressCircle from './ProgressCircle.vue'
 
 /** Progress with a label, the value ("42%") and an optional description. */
 const props = withDefaults(defineProps<{
@@ -19,8 +20,13 @@ const props = withDefaults(defineProps<{
   size?: ProgressVariants['size']
   variant?: ProgressVariants['variant']
   indeterminate?: boolean
+  /** 'line' (default) or 'circle' (ProgressCircle with the label underneath). */
+  type?: 'line' | 'circle'
+  /** Circle only: degrees left open at the bottom (gauge). */
+  gapDegree?: number
   class?: HTMLAttributes['class']
 }>(), {
+  type: 'line',
   value: 0,
   max: 100,
   showValue: undefined,
@@ -33,7 +39,24 @@ const valueShown = computed(() => props.showValue ?? !props.indeterminate)
 </script>
 
 <template>
-  <div data-slot="progress-bar" :class="cn('flex w-full flex-col gap-1.5', props.class)">
+  <div v-if="type === 'circle'" data-slot="progress-bar" :class="cn('inline-flex flex-col items-center gap-1.5 text-center', props.class)">
+    <ProgressCircle
+      :value="current"
+      :max="max"
+      :size="size ?? 'default'"
+      :variant="variant ?? 'default'"
+      :indeterminate="indeterminate"
+      :gap-degree="gapDegree"
+      :show-value="showValue"
+      :format-value="formatValue"
+      :aria-label="label"
+    />
+    <span v-if="label" class="text-sm font-medium">{{ label }}</span>
+    <p v-if="description" class="text-xs text-muted-foreground">
+      {{ description }}
+    </p>
+  </div>
+  <div v-else data-slot="progress-bar" :class="cn('flex w-full flex-col gap-1.5', props.class)">
     <div v-if="label || valueShown" class="flex items-center justify-between gap-4 text-sm">
       <span class="font-medium">{{ label }}</span>
       <span v-if="valueShown" class="text-muted-foreground tabular-nums">{{ formatValue(current, max) }}</span>
