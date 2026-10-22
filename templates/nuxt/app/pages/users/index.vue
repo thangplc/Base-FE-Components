@@ -22,6 +22,8 @@ const getRowId = (user: User) => user.id
     :filters="filters"
     :row-actions="rowActions"
     :default-sorting="[{ id: 'createdAt', desc: true }]"
+    :row-actions-display="'inline'"
+    :max-body-height="'calc(100vh - 20rem)'"
     search-placeholder="Search users..."
   >
     <template #toolbar-actions>
