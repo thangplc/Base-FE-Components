@@ -162,7 +162,7 @@ Cùng một bộ props cho cả hai template. Chỗ nào Vue khác thì được
 | Cột action | `rowActions(row) => RowAction[]`: label, icon, variant, disabled, hidden, `confirm`, `display` | | |
 | | `rowActionsDisplay`: `"menu"` (gom vào "…") hoặc `"inline"` (mỗi action một nút) | `"menu"` | |
 | | `actionsColumnSize`: độ rộng cột action (px) | tự ước lượng | |
-| | `actionsColumnPinned`: dính bên phải khi cuộn ngang | `true` | |
+| | `actionsColumnPinned`: khi cột nhiều quá chiều ngang (có thanh cuộn ngang), cột action đứng yên bên phải; khi vừa đủ thì là cột bình thường | `true` | |
 | Layout | `maxBodyHeight`: body cuộn, **scrollbar chỉ trong body** | | |
 | | `stickyHeader` (khi có `maxBodyHeight`) | `true` | |
 | Phân trang | `pageSize`, `pageSizeOptions`, `showPagination` | `10`, `[10,20,50,100]`, `true` | |

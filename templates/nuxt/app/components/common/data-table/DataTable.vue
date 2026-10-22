@@ -24,11 +24,9 @@ import {
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
-import { useResizeObserver } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -95,7 +93,10 @@ const props = withDefaults(defineProps<{
   rowActionsDisplay?: RowActionDisplay
   /** Width of the actions column in px (default: estimated from the actions). */
   actionsColumnSize?: number
-  /** Keep the actions column visible on the right while scrolling horizontally. */
+  /**
+   * When the columns don't fit and the table scrolls horizontally, keep the
+   * actions column fixed on the right. When everything fits it is a normal column.
+   */
   actionsColumnPinned?: boolean
 
   // Layout
@@ -256,11 +257,27 @@ const bodyHeight = computed(() =>
 // Shared widths for the split header/body tables (TanStack default size: 150);
 // spare width goes to the data columns only (see columnWidths).
 const headerScroller = ref<HTMLDivElement>()
-const bodyScroller = ref<HTMLDivElement>()
+// The element that scrolls horizontally (the body in the split layout).
+const scroller = ref<HTMLDivElement>()
 const available = ref(0)
-useResizeObserver(bodyScroller, () => {
-  available.value = bodyScroller.value?.clientWidth ?? 0
-})
+// Whether the columns overflow horizontally; drives the pinned actions
+// column through `data-overflow-x` (see pinnedRightClass in helpers.ts).
+const overflowX = ref(false)
+
+watch(scroller, (element, _, onCleanup) => {
+  if (!element)
+    return
+  const update = () => {
+    available.value = element.clientWidth
+    overflowX.value = element.scrollWidth > element.clientWidth + 1
+  }
+  // The scroller resizes with the window; the table with its columns.
+  const observer = new ResizeObserver(update)
+  observer.observe(element)
+  if (element.firstElementChild)
+    observer.observe(element.firstElementChild)
+  onCleanup(() => observer.disconnect())
+}, { flush: 'post' })
 const widths = computed(() => columnWidths(visibleColumns.value, available.value))
 const tableWidth = computed(() => `${widths.value.reduce((sum, w) => sum + w, 0)}px`)
 
@@ -283,7 +300,7 @@ function syncHeaderScroll(event: Event) {
 </script>
 
 <template>
-  <div :class="cn('flex flex-col gap-4', props.class)">
+  <div :class="cn('group/table flex flex-col gap-4', props.class)" :data-overflow-x="overflowX || undefined">
     <DataTableToolbar
       :table="table"
       :search-placeholder="searchPlaceholder"
@@ -323,7 +340,7 @@ function syncHeaderScroll(event: Event) {
           </TableHeader>
         </table>
       </div>
-      <div ref="bodyScroller" class="overflow-auto [scrollbar-gutter:stable]" :style="{ maxHeight: bodyHeight }" @scroll="syncHeaderScroll">
+      <div ref="scroller" class="overflow-auto [scrollbar-gutter:stable]" :style="{ maxHeight: bodyHeight }" @scroll="syncHeaderScroll">
         <table class="table-fixed caption-bottom text-sm" :style="{ width: tableWidth }">
           <colgroup>
             <col v-for="(column, i) in visibleColumns" :key="column.id" :style="{ width: `${widths[i]}px` }">
@@ -361,57 +378,56 @@ function syncHeaderScroll(event: Event) {
       </div>
     </div>
 
-    <div
-      v-else
-      :class="layout === 'scroll' ? 'overflow-auto rounded-lg border' : 'overflow-hidden rounded-lg border'"
-      :style="layout === 'scroll' ? { maxHeight: bodyHeight } : undefined"
-    >
-      <component
-        :is="layout === 'scroll' ? 'table' : Table"
-        :class="layout === 'scroll' ? 'w-full caption-bottom text-sm' : undefined"
+    <div v-else class="overflow-hidden rounded-lg border">
+      <div
+        ref="scroller"
+        :class="layout === 'scroll' ? 'overflow-auto' : 'relative w-full overflow-x-auto'"
+        :style="layout === 'scroll' ? { maxHeight: bodyHeight } : undefined"
       >
-        <TableHeader>
-          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
-            <TableHead
-              v-for="header in headerGroup.headers"
-              :key="header.id"
-              :col-span="header.colSpan"
-              :class="header.column.columnDef.meta?.className"
-            >
-              <FlexRender v-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <template v-if="isLoading">
-            <TableRow v-for="i in skeletonRows" :key="i" class="hover:bg-transparent">
-              <TableCell v-for="column in visibleColumns" :key="column.id">
-                <Skeleton class="h-5 w-full" />
+        <table data-slot="table" class="w-full caption-bottom text-sm">
+          <TableHeader>
+            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
+              <TableHead
+                v-for="header in headerGroup.headers"
+                :key="header.id"
+                :col-span="header.colSpan"
+                :class="header.column.columnDef.meta?.className"
+              >
+                <FlexRender v-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <template v-if="isLoading">
+              <TableRow v-for="i in skeletonRows" :key="i" class="hover:bg-transparent">
+                <TableCell v-for="column in visibleColumns" :key="column.id">
+                  <Skeleton class="h-5 w-full" />
+                </TableCell>
+              </TableRow>
+            </template>
+            <template v-else-if="table.getRowModel().rows.length">
+              <TableRow
+                v-for="row in table.getRowModel().rows"
+                :key="row.id"
+                :data-state="row.getIsSelected() ? 'selected' : undefined"
+                :class="cn('group/row', props.onRowClick && 'cursor-pointer')"
+                @click="onRowClick($event, row)"
+              >
+                <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="cell.column.columnDef.meta?.className">
+                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                </TableCell>
+              </TableRow>
+            </template>
+            <TableRow v-else class="hover:bg-transparent">
+              <TableCell :colspan="visibleColumns.length" class="h-24 text-center text-muted-foreground">
+                <slot name="empty">
+                  {{ emptyState }}
+                </slot>
               </TableCell>
             </TableRow>
-          </template>
-          <template v-else-if="table.getRowModel().rows.length">
-            <TableRow
-              v-for="row in table.getRowModel().rows"
-              :key="row.id"
-              :data-state="row.getIsSelected() ? 'selected' : undefined"
-              :class="cn('group/row', props.onRowClick && 'cursor-pointer')"
-              @click="onRowClick($event, row)"
-            >
-              <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="cell.column.columnDef.meta?.className">
-                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-              </TableCell>
-            </TableRow>
-          </template>
-          <TableRow v-else class="hover:bg-transparent">
-            <TableCell :colspan="visibleColumns.length" class="h-24 text-center text-muted-foreground">
-              <slot name="empty">
-                {{ emptyState }}
-              </slot>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </component>
+          </TableBody>
+        </table>
+      </div>
     </div>
 
     <DataTablePagination

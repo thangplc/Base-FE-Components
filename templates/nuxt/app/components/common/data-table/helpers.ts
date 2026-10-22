@@ -37,10 +37,19 @@ export function selectionColumn<TData>(): ColumnDef<TData> {
   }
 }
 
-// Matches TableRow's hover / selected colors, but opaque so content
-// scrolling underneath the pinned column stays hidden.
-const pinnedRightClass
-  = 'sticky right-0 z-[1] bg-background shadow-[inset_1px_0_0_var(--border)] group-hover/row:bg-[color-mix(in_oklch,var(--muted)_50%,var(--background))] group-data-[state=selected]/row:bg-muted'
+// Only while the table overflows horizontally (data-overflow-x on the
+// wrapper): stick to the right with a divider, in colors that match
+// TableRow's hover / selected states but opaque, so content scrolling
+// underneath stays hidden. Otherwise it is a plain column.
+const pinnedRightClass = [
+  'group-data-[overflow-x=true]/table:sticky',
+  'group-data-[overflow-x=true]/table:right-0',
+  'group-data-[overflow-x=true]/table:z-[1]',
+  'group-data-[overflow-x=true]/table:bg-background',
+  'group-data-[overflow-x=true]/table:shadow-[inset_1px_0_0_var(--border)]',
+  'group-data-[overflow-x=true]/table:group-hover/row:bg-[color-mix(in_oklch,var(--muted)_50%,var(--background))]',
+  'group-data-[overflow-x=true]/table:group-data-[state=selected]/row:bg-muted',
+].join(' ')
 
 export function actionsColumn<TData>(
   rowActions: (row: TData) => RowAction<TData>[],

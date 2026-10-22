@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
 import {
   flexRender,
   functionalUpdate,
@@ -28,7 +28,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -93,7 +92,10 @@ export type DataTableProps<TData, TValue = unknown> = {
   rowActionsDisplay?: RowActionDisplay
   /** Width of the actions column in px (default: estimated from the actions). */
   actionsColumnSize?: number
-  /** Keep the actions column visible on the right while scrolling horizontally. */
+  /**
+   * When the columns don't fit and the table scrolls horizontally, keep the
+   * actions column fixed on the right. When everything fits it is a normal column.
+   */
   actionsColumnPinned?: boolean
 
   // Layout
@@ -298,6 +300,22 @@ function DataTableContent<TData, TValue>({
   const visibleColumns = table.getVisibleLeafColumns()
   const rows = table.getRowModel().rows
 
+  // Whether the columns overflow horizontally; drives the pinned actions
+  // column through `data-overflow-x` (see pinnedRightClass).
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const [overflowX, setOverflowX] = useState(false)
+
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    const update = () => setOverflowX(scroller.scrollWidth > scroller.clientWidth + 1)
+    // The scroller resizes with the window; the table with its columns.
+    const observer = new ResizeObserver(update)
+    observer.observe(scroller)
+    if (scroller.firstElementChild) observer.observe(scroller.firstElementChild)
+    return () => observer.disconnect()
+  }, [maxBodyHeight, stickyHeader])
+
   function handleRowClick(event: React.MouseEvent<HTMLTableRowElement>, row: Row<TData>) {
     if (!onRowClick) return
     // Ignore clicks from portals (menus, dialogs) and from interactive cells.
@@ -354,7 +372,10 @@ function DataTableContent<TData, TValue>({
   )
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div
+      className={cn("group/table flex flex-col gap-4", className)}
+      data-overflow-x={overflowX || undefined}
+    >
       <DataTableToolbar
         table={table}
         searchPlaceholder={searchPlaceholder}
@@ -366,15 +387,23 @@ function DataTableContent<TData, TValue>({
       />
       {maxBodyHeight === undefined ? (
         <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>{headerRows}</TableHeader>
-            <TableBody>{bodyRows}</TableBody>
-          </Table>
+          <div ref={scrollerRef} className="relative w-full overflow-x-auto">
+            <table data-slot="table" className="w-full caption-bottom text-sm">
+              <TableHeader>{headerRows}</TableHeader>
+              <TableBody>{bodyRows}</TableBody>
+            </table>
+          </div>
         </div>
       ) : stickyHeader ? (
-        <ScrollBodyTable table={table} maxBodyHeight={maxBodyHeight} header={headerRows} body={bodyRows} />
+        <ScrollBodyTable
+          table={table}
+          bodyRef={scrollerRef}
+          maxBodyHeight={maxBodyHeight}
+          header={headerRows}
+          body={bodyRows}
+        />
       ) : (
-        <div className="overflow-auto rounded-lg border" style={{ maxHeight: maxBodyHeight }}>
+        <div ref={scrollerRef} className="overflow-auto rounded-lg border" style={{ maxHeight: maxBodyHeight }}>
           <table className="w-full caption-bottom text-sm">
             <TableHeader>{headerRows}</TableHeader>
             <TableBody>{bodyRows}</TableBody>
@@ -401,11 +430,13 @@ function DataTableContent<TData, TValue>({
  */
 function ScrollBodyTable<TData>({
   table,
+  bodyRef,
   maxBodyHeight,
   header,
   body,
 }: {
   table: TanstackTable<TData>
+  bodyRef: RefObject<HTMLDivElement | null>
   maxBodyHeight: number | string
   header: ReactNode
   body: ReactNode
@@ -413,7 +444,6 @@ function ScrollBodyTable<TData>({
   "use no memo"
 
   const headerRef = useRef<HTMLDivElement>(null)
-  const bodyRef = useRef<HTMLDivElement>(null)
   const [available, setAvailable] = useState(0)
 
   useEffect(() => {
@@ -423,7 +453,7 @@ function ScrollBodyTable<TData>({
     const observer = new ResizeObserver(() => setAvailable(body.clientWidth))
     observer.observe(body)
     return () => observer.disconnect()
-  }, [])
+  }, [bodyRef])
 
   const columns = table.getVisibleLeafColumns()
   const widths = columnWidths(columns, available)
@@ -519,10 +549,19 @@ function selectionColumn<TData, TValue>(): ColumnDef<TData, TValue> {
   }
 }
 
-// Matches TableRow's hover / selected colors, but opaque so content
-// scrolling underneath the pinned column stays hidden.
-const pinnedRightClass =
-  "sticky right-0 z-[1] bg-background shadow-[inset_1px_0_0_var(--border)] group-hover/row:bg-[color-mix(in_oklch,var(--muted)_50%,var(--background))] group-data-[state=selected]/row:bg-muted"
+// Only while the table overflows horizontally (data-overflow-x on the
+// wrapper): stick to the right with a divider, in colors that match
+// TableRow's hover / selected states but opaque, so content scrolling
+// underneath stays hidden. Otherwise it is a plain column.
+const pinnedRightClass = [
+  "group-data-[overflow-x=true]/table:sticky",
+  "group-data-[overflow-x=true]/table:right-0",
+  "group-data-[overflow-x=true]/table:z-[1]",
+  "group-data-[overflow-x=true]/table:bg-background",
+  "group-data-[overflow-x=true]/table:shadow-[inset_1px_0_0_var(--border)]",
+  "group-data-[overflow-x=true]/table:group-hover/row:bg-[color-mix(in_oklch,var(--muted)_50%,var(--background))]",
+  "group-data-[overflow-x=true]/table:group-data-[state=selected]/row:bg-muted",
+].join(" ")
 
 function actionsColumn<TData, TValue>(
   rowActions: (row: TData) => RowAction<TData>[],
