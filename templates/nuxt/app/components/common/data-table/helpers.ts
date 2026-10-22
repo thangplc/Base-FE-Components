@@ -1,6 +1,6 @@
 import type { ColumnDef, HeaderContext } from '@tanstack/vue-table'
 import type { Component } from 'vue'
-import type { RowAction } from './types'
+import type { RowAction, RowActionDisplay } from './types'
 import { h } from 'vue'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
@@ -44,16 +44,19 @@ const pinnedRightClass
 
 export function actionsColumn<TData>(
   rowActions: (row: TData) => RowAction<TData>[],
+  display: RowActionDisplay,
+  size: number,
   pinned: boolean,
 ): ColumnDef<TData> {
   return {
     id: 'actions',
-    size: 56,
+    size,
     enableSorting: false,
     enableHiding: false,
-    meta: { className: cn('w-14 text-right', pinned && pinnedRightClass) },
+    // w-px: shrink to the buttons in the auto layout (no maxBodyHeight).
+    meta: { className: cn('w-px whitespace-nowrap text-right', pinned && pinnedRightClass) },
     header: () => h('span', { class: 'sr-only' }, 'Actions'),
     cell: ({ row }) =>
-      h(DataTableRowActions as Component, { row: row.original, actions: rowActions(row.original) }),
+      h(DataTableRowActions as Component, { row: row.original, actions: rowActions(row.original), display }),
   }
 }

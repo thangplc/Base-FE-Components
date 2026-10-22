@@ -159,7 +159,9 @@ Cùng một bộ props cho cả hai template. Chỗ nào Vue khác thì được
 | | `sorting` / `onSortingChange`, `manualSorting` | tự quản lý | `v-model:sorting` |
 | Filter | `filters: DataTableFilter[]`: `select` · `multi-select` · `number-range` · `date-range` | | |
 | | `columnFilters` / `onColumnFiltersChange`, `manualFiltering` | tự quản lý | `v-model:column-filters` |
-| Cột action | `rowActions(row) => RowAction[]`: label, icon, variant, disabled, hidden, `confirm` | | |
+| Cột action | `rowActions(row) => RowAction[]`: label, icon, variant, disabled, hidden, `confirm`, `display` | | |
+| | `rowActionsDisplay`: `"menu"` (gom vào "…") hoặc `"inline"` (mỗi action một nút) | `"menu"` | |
+| | `actionsColumnSize`: độ rộng cột action (px) | tự ước lượng | |
 | | `actionsColumnPinned`: dính bên phải khi cuộn ngang | `true` | |
 | Layout | `maxBodyHeight`: body cuộn, **scrollbar chỉ trong body** | | |
 | | `stickyHeader` (khi có `maxBodyHeight`) | `true` | |
@@ -170,6 +172,12 @@ Cùng một bộ props cho cả hai template. Chỗ nào Vue khác thì được
 | Chọn dòng | `enableRowSelection` (boolean hoặc `(row) => boolean`) | `false` | |
 | | `onRowSelectionChange(rows)` | | `@selection-change` |
 | | `bulkActions(rows, { clear })` | | slot `#bulk-actions="{ rows, clear }"` |
+
+**Vị trí của action:** `rowActionsDisplay` đặt kiểu mặc định cho cả bảng. Từng action có thể ghi đè bằng `display`:
+- `"inline"`: nếu có `icon` thì là nút icon kèm tooltip là `label`; nếu không có icon thì là nút chữ.
+- `"menu"`: nằm trong menu "…". Menu chỉ xuất hiện khi còn ít nhất một action dạng menu.
+
+Ví dụ: `rowActionsDisplay="menu"` và gắn `display: "inline"` cho Edit/Delete thì hai nút này hiện ra ngoài, các action còn lại nằm trong "…". `confirm` dùng được cho cả hai kiểu.
 
 Trong `columns`, có thể dùng thêm:
 - `meta.label`: tên cột trong menu "View".

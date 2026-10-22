@@ -35,10 +35,16 @@ export interface DataTableFilter {
 export type NumberRange = [min: number | undefined, max: number | undefined]
 export interface DateRange { from?: string, to?: string }
 
-/** One entry in the row actions menu (the "…" column at the end). */
+/** Where a row action is shown: inside the "…" menu, or as its own button. */
+export type RowActionDisplay = 'menu' | 'inline'
+
+/** One action in the actions column at the end of each row. */
 export interface RowAction<TData> {
+  /** Menu text; for inline icon buttons it becomes the tooltip and aria-label. */
   label: string
   icon?: Component
+  /** Overrides the table's `rowActionsDisplay` for this action. */
+  display?: RowActionDisplay
   /** Awaited when it returns a promise (the confirm dialog shows a spinner meanwhile). */
   onClick: (row: TData) => unknown
   variant?: 'default' | 'destructive'

@@ -36,10 +36,10 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { DataTablePagination } from "./data-table-pagination"
-import { DataTableRowActions } from "./data-table-row-actions"
+import { DataTableRowActions, estimateRowActionsWidth } from "./data-table-row-actions"
 import { DataTableToolbar } from "./data-table-toolbar"
 import { filterFnByType } from "./filter-fns"
-import type { DataTableFilter, RowAction } from "./types"
+import type { DataTableFilter, RowAction, RowActionDisplay } from "./types"
 import { useControllableState } from "./use-controllable-state"
 
 export type DataTableProps<TData, TValue = unknown> = {
@@ -83,8 +83,15 @@ export type DataTableProps<TData, TValue = unknown> = {
   manualFiltering?: boolean
 
   // Row actions
-  /** Adds a "…" menu column at the end. */
+  /** Adds an actions column at the end. */
   rowActions?: (row: TData) => RowAction<TData>[]
+  /**
+   * Default placement of the actions: all inside a "…" menu, or each as its
+   * own button. A single action can override it with `display`.
+   */
+  rowActionsDisplay?: RowActionDisplay
+  /** Width of the actions column in px (default: estimated from the actions). */
+  actionsColumnSize?: number
   /** Keep the actions column visible on the right while scrolling horizontally. */
   actionsColumnPinned?: boolean
 
@@ -171,6 +178,8 @@ function DataTableContent<TData, TValue>({
   onColumnFiltersChange,
   manualFiltering = false,
   rowActions,
+  rowActionsDisplay = "menu",
+  actionsColumnSize,
   actionsColumnPinned = true,
   maxBodyHeight,
   stickyHeader = true,
@@ -223,12 +232,30 @@ function DataTableContent<TData, TValue>({
         ? { ...column, filterFn: filterFnByType[filter.type] as FilterFn<TData> }
         : column
     })
+    // Size the actions column for the widest set of actions on the first rows.
+    const actionsSize =
+      actionsColumnSize ??
+      Math.max(
+        56,
+        ...data.slice(0, 50).map((row) => estimateRowActionsWidth(rowActions?.(row) ?? [], rowActionsDisplay))
+      )
     return [
       ...(enableRowSelection ? [selectionColumn<TData, TValue>()] : []),
       ...withFilterFns,
-      ...(rowActions ? [actionsColumn<TData, TValue>(rowActions, actionsColumnPinned)] : []),
+      ...(rowActions
+        ? [actionsColumn<TData, TValue>(rowActions, rowActionsDisplay, actionsSize, actionsColumnPinned)]
+        : []),
     ]
-  }, [columns, filters, enableRowSelection, rowActions, actionsColumnPinned])
+  }, [
+    columns,
+    data,
+    filters,
+    enableRowSelection,
+    rowActions,
+    rowActionsDisplay,
+    actionsColumnSize,
+    actionsColumnPinned,
+  ])
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<TData>({
@@ -461,15 +488,20 @@ const pinnedRightClass =
 
 function actionsColumn<TData, TValue>(
   rowActions: (row: TData) => RowAction<TData>[],
+  display: RowActionDisplay,
+  size: number,
   pinned: boolean
 ): ColumnDef<TData, TValue> {
   return {
     id: "actions",
-    size: 56,
+    size,
     enableSorting: false,
     enableHiding: false,
-    meta: { className: cn("w-14 text-right", pinned && pinnedRightClass) },
+    // w-px: shrink to the buttons in the auto layout (no maxBodyHeight).
+    meta: { className: cn("w-px whitespace-nowrap text-right", pinned && pinnedRightClass) },
     header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <DataTableRowActions row={row.original} actions={rowActions(row.original)} />,
+    cell: ({ row }) => (
+      <DataTableRowActions row={row.original} actions={rowActions(row.original)} display={display} />
+    ),
   }
 }

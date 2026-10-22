@@ -11,7 +11,7 @@ import type {
   VisibilityState,
 } from '@tanstack/vue-table'
 import type { HTMLAttributes } from 'vue'
-import type { DataTableFilter, RowAction } from './types'
+import type { DataTableFilter, RowAction, RowActionDisplay } from './types'
 import {
   FlexRender,
   functionalUpdate,
@@ -39,6 +39,7 @@ import DataTablePagination from './DataTablePagination.vue'
 import DataTableToolbar from './DataTableToolbar.vue'
 import { filterFnByType } from './filter-fns'
 import { actionsColumn, selectionColumn } from './helpers'
+import { estimateRowActionsWidth } from './row-actions'
 
 /**
  * Data table on top of TanStack Table: search, sort, filters, row actions,
@@ -83,8 +84,15 @@ const props = withDefaults(defineProps<{
   manualFiltering?: boolean
 
   // Row actions
-  /** Adds a "…" menu column at the end. */
+  /** Adds an actions column at the end. */
   rowActions?: (row: TData) => RowAction<TData>[]
+  /**
+   * Default placement of the actions: all inside a "…" menu, or each as its
+   * own button. A single action can override it with `display`.
+   */
+  rowActionsDisplay?: RowActionDisplay
+  /** Width of the actions column in px (default: estimated from the actions). */
+  actionsColumnSize?: number
   /** Keep the actions column visible on the right while scrolling horizontally. */
   actionsColumnPinned?: boolean
 
@@ -114,6 +122,7 @@ const props = withDefaults(defineProps<{
   manualSorting: false,
   enableMultiSort: false,
   manualFiltering: false,
+  rowActionsDisplay: 'menu',
   actionsColumnPinned: true,
   stickyHeader: true,
   pageSize: 10,
@@ -164,10 +173,18 @@ const allColumns = computed(() => {
       ? { ...column, filterFn: filterFnByType[filter.type] as FilterFn<TData> }
       : column
   }) as ColumnDef<TData>[]
+  const rowActions = props.rowActions
+  // Size the actions column for the widest set of actions on the first rows.
+  const actionsSize = props.actionsColumnSize ?? Math.max(
+    56,
+    ...props.data.slice(0, 50).map(row => estimateRowActionsWidth(rowActions?.(row) ?? [], props.rowActionsDisplay)),
+  )
   return [
     ...(props.enableRowSelection ? [selectionColumn<TData>()] : []),
     ...withFilterFns,
-    ...(props.rowActions ? [actionsColumn<TData>(props.rowActions, props.actionsColumnPinned)] : []),
+    ...(rowActions
+      ? [actionsColumn<TData>(rowActions, props.rowActionsDisplay, actionsSize, props.actionsColumnPinned)]
+      : []),
   ]
 })
 

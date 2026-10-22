@@ -4,4 +4,11 @@ export { DataTableFilterControl } from "./data-table-filter"
 export { DataTablePagination } from "./data-table-pagination"
 export { DataTableRowActions } from "./data-table-row-actions"
 export { DataTableToolbar } from "./data-table-toolbar"
-export type { DataTableFilter, DataTableFilterOption, DateRange, NumberRange, RowAction } from "./types"
+export type {
+  DataTableFilter,
+  DataTableFilterOption,
+  DateRange,
+  NumberRange,
+  RowAction,
+  RowActionDisplay,
+} from "./types"

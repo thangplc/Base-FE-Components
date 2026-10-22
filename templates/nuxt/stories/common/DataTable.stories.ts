@@ -74,6 +74,24 @@ export const RowActions: Story = {
   args: { rowActions },
 }
 
+/**
+ * `row-actions-display="inline"`: every action is its own button. Icon actions
+ * become icon buttons with a tooltip; actions without an icon become text buttons.
+ */
+export const RowActionsInline: Story = {
+  args: { rowActions, rowActionsDisplay: 'inline' },
+}
+
+/** Per-action `display`: Edit and Delete shown inline, the rest stay in the "…" menu. */
+export const RowActionsMixed: Story = {
+  args: {
+    rowActions: (row: Payment) =>
+      rowActions(row).map(action =>
+        action.label === 'Edit' || action.label === 'Delete' ? { ...action, display: 'inline' } : action,
+      ),
+  },
+}
+
 /** Checkbox column + `#bulk-actions` replacing the toolbar while rows are selected. */
 export const RowSelection: Story = {
   args: { enableRowSelection: (row: Payment) => row.status !== 'failed' },

@@ -21,6 +21,7 @@ export default function UsersPage() {
         filters={filters}
         rowActions={rowActions}
         defaultSorting={[{ id: "createdAt", desc: true }]}
+        maxBodyHeight="calc(100vh - 20rem)"
         toolbarActions={
           <Button>
             <PlusIcon data-icon="inline-start" />
