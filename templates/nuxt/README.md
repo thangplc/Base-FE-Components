@@ -42,16 +42,31 @@ Cần control mới? Copy `FormInput.vue`, đổi `<Input>` thành control của
 import { sortableHeader } from '@/components/common/data-table/helpers'
 
 const columns: ColumnDef<User>[] = [
-  { accessorKey: 'name', header: sortableHeader('Name') },
-  { id: 'actions', cell: ({ row }) => h(UserRowActions, { user: row.original }) },
+  { accessorKey: 'name', header: sortableHeader('Name'), meta: { label: 'Name' } },
+  { accessorKey: 'amount', header: sortableHeader('Amount'), meta: { className: 'text-right' } },
+]
+
+const rowActions = (u: User): RowAction<User>[] => [
+  { label: 'Edit', icon: PencilIcon, onClick: () => edit(u) },
+  { label: 'Delete', variant: 'destructive', confirm: { title: 'Delete?' }, onClick: () => api.delete(u.id) },
 ]
 ```
 
 ```vue
-<DataTable :columns="columns" :data="users" search-placeholder="Search...">
+<DataTable
+  :columns="columns"
+  :data="users"
+  :get-row-id="(u) => u.id"
+  :filters="[{ columnId: 'status', title: 'Status', type: 'multi-select', options: statusOptions }]"
+  :row-actions="rowActions"
+  :max-body-height="480"
+  search-placeholder="Search..."
+>
   <template #toolbar-actions><Button>Add</Button></template>
 </DataTable>
 ```
+
+Bảng đầy đủ các props nằm ở mục DataTable trong README gốc. Với server-side, dùng `v-model:search`, `v-model:sorting`, `v-model:column-filters`, `v-model:pagination` kết hợp các cờ `manual-*`.
 
 ### ConfirmDialog
 

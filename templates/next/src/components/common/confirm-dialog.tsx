@@ -16,8 +16,11 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 
 type ConfirmDialogProps = {
-  /** Element that opens the dialog, e.g. a `<Button>`. */
-  trigger: ReactElement
+  /** Element that opens the dialog, e.g. a `<Button>`. Omit when controlling `open`. */
+  trigger?: ReactElement
+  /** Controlled open state (e.g. opened from a menu item). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   title: ReactNode
   description?: ReactNode
   confirmText?: string
@@ -32,6 +35,8 @@ type ConfirmDialogProps = {
 
 export function ConfirmDialog({
   trigger,
+  open: openProp,
+  onOpenChange,
   title,
   description,
   confirmText = "Confirm",
@@ -39,8 +44,14 @@ export function ConfirmDialog({
   variant = "default",
   onConfirm,
 }: ConfirmDialogProps) {
-  const [open, setOpen] = useState(false)
+  const [innerOpen, setInnerOpen] = useState(false)
   const [pending, setPending] = useState(false)
+  const open = openProp ?? innerOpen
+
+  function setOpen(next: boolean) {
+    if (openProp === undefined) setInnerOpen(next)
+    onOpenChange?.(next)
+  }
 
   async function handleConfirm(event: React.MouseEvent) {
     event.preventDefault()
@@ -57,7 +68,7 @@ export function ConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      {trigger && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

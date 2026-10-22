@@ -134,11 +134,55 @@ Nhớ thêm vào **cả hai** template để chúng không lệch nhau.
 |---|---|---|
 | Base (ui) | Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Label, Field, InputGroup, Dialog, AlertDialog, Sheet, DropdownMenu, Popover, Tooltip, Command, Sonner (toast), Card, Badge, Avatar, Table, Tabs, Breadcrumb, Pagination, Sidebar, ScrollArea, Separator, Skeleton, Spinner, Empty | Giống bên Next, cộng thêm `form` (vee-validate) |
 | Form | `FormField` (render-prop generic), `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch` | `FormFieldLayout`, `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch` |
-| Data | `DataTable` (search, sort, ẩn/hiện cột, phân trang), `DataTableColumnHeader` | `DataTable`, `DataTableColumnHeader`, helper `sortableHeader()` |
+| Data | `DataTable`: search, sort, filter, cột action, chọn dòng, sticky header, phân trang, chế độ server-side (xem [mục DataTable](#datatable)) | Giống bên Next |
 | Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle` | Giống bên Next |
 | Layout | `AppShell` = Sidebar (thu gọn được) + Header (breadcrumb, theme toggle) | Giống bên Next (`layouts/default.vue`) |
 
 Chi tiết cách dùng nằm trong README của từng template và trong Storybook.
+
+## DataTable
+
+Cùng một bộ props cho cả hai template. Chỗ nào Vue khác thì được ghi chú trong cột cuối.
+
+| Nhóm | Prop | Mặc định | Vue |
+|---|---|---|---|
+| Dữ liệu | `columns`, `data` (bắt buộc) | | |
+| | `getRowId(row)` | index | |
+| | `isLoading`: skeleton trong body | `false` | |
+| | `emptyState` | `"No results."` | string, hoặc slot `#empty` |
+| | `onRowClick(row)` (bỏ qua click vào button, link, checkbox) | | `@row-click` |
+| Search | `searchPlaceholder`: hiện ô tìm kiếm | | |
+| | `searchColumns`: chỉ tìm trong các cột này | mọi cột text/số | |
+| | `searchValue` / `onSearchChange` | tự quản lý | `v-model:search` |
+| | `searchDebounceMs` | `300` | |
+| Sort | `defaultSorting`, `enableMultiSort` (Shift + click) | `[]`, `false` | |
+| | `sorting` / `onSortingChange`, `manualSorting` | tự quản lý | `v-model:sorting` |
+| Filter | `filters: DataTableFilter[]`: `select` · `multi-select` · `number-range` · `date-range` | | |
+| | `columnFilters` / `onColumnFiltersChange`, `manualFiltering` | tự quản lý | `v-model:column-filters` |
+| Cột action | `rowActions(row) => RowAction[]`: label, icon, variant, disabled, hidden, `confirm` | | |
+| | `actionsColumnPinned`: dính bên phải khi cuộn ngang | `true` | |
+| Layout | `maxBodyHeight`: body cuộn, **scrollbar chỉ trong body** | | |
+| | `stickyHeader` (khi có `maxBodyHeight`) | `true` | |
+| Phân trang | `pageSize`, `pageSizeOptions`, `showPagination` | `10`, `[10,20,50,100]`, `true` | |
+| | `pagination` / `onPaginationChange`, `manualPagination` + `rowCount` | tự quản lý | `v-model:pagination` |
+| Toolbar | `toolbarActions` | | slot `#toolbar-actions` |
+| | `enableColumnVisibility`, `defaultColumnVisibility` | `true`, `{}` | |
+| Chọn dòng | `enableRowSelection` (boolean hoặc `(row) => boolean`) | `false` | |
+| | `onRowSelectionChange(rows)` | | `@selection-change` |
+| | `bulkActions(rows, { clear })` | | slot `#bulk-actions="{ rows, clear }"` |
+
+Trong `columns`, có thể dùng thêm:
+- `meta.label`: tên cột trong menu "View".
+- `meta.className`: class cho cả ô header lẫn ô body, ví dụ `"text-right"`.
+- `size`: độ rộng cột, dùng khi có `maxBodyHeight`.
+- `enableSorting: false` / `enableGlobalFilter: false`: tắt sort hoặc tìm kiếm cho cột đó.
+- `sortableHeader("Tên")`: tạo nhanh header có nút sort.
+
+**Hai chế độ dùng:**
+- **Tự quản lý:** chỉ truyền `data`. Search, sort, filter và phân trang đều chạy ở client.
+- **Server-side:** điều khiển state từ ngoài và bật `manualSorting` / `manualFiltering` / `manualPagination`, truyền thêm `rowCount`. Khi search hoặc filter thay đổi, bảng tự quay về trang 1.
+
+Story `Common/DataTable` có ví dụ cho từng tính năng, gồm cả một "API" giả lập 1.234 dòng.
 
 ## Storybook
 

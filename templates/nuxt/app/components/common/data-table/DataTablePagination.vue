@@ -19,22 +19,28 @@ import {
 const props = withDefaults(defineProps<{
   table: Table<TData>
   pageSizeOptions?: number[]
+  /** Show "n of total selected" instead of the row count. */
+  showSelectedCount?: boolean
 }>(), {
   pageSizeOptions: () => [10, 20, 50, 100],
+  showSelectedCount: false,
 })
 
 const pagination = computed(() => props.table.getState().pagination)
-const total = computed(() => props.table.getFilteredRowModel().rows.length)
+// rowCount when paginating on the server, otherwise the filtered row count.
+const total = computed(() => props.table.getRowCount())
+const selected = computed(() => Object.keys(props.table.getState().rowSelection).length)
 // Keep a custom initial pageSize (e.g. 5) selectable.
 const sizes = computed(() =>
   [...new Set([...props.pageSizeOptions, pagination.value.pageSize])].sort((a, b) => a - b),
 )
+const rowsLabel = (n: number) => `${n} row${n === 1 ? '' : 's'}`
 </script>
 
 <template>
   <div class="flex flex-wrap items-center justify-between gap-4 text-sm">
     <p class="text-muted-foreground">
-      {{ total }} row{{ total === 1 ? '' : 's' }}
+      {{ showSelectedCount ? `${selected} of ${rowsLabel(total)} selected` : rowsLabel(total) }}
     </p>
     <div class="flex flex-wrap items-center gap-4 lg:gap-6">
       <div class="flex items-center gap-2">

@@ -20,21 +20,30 @@ import {
 type DataTablePaginationProps<TData> = {
   table: Table<TData>
   pageSizeOptions?: number[]
+  /** Show "n of total selected" instead of the row count. */
+  showSelectedCount?: boolean
 }
 
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 50, 100],
+  showSelectedCount = false,
 }: DataTablePaginationProps<TData>) {
+  "use no memo" // reads live TanStack table state
+
   const { pageIndex, pageSize } = table.getState().pagination
-  const total = table.getFilteredRowModel().rows.length
+  // rowCount when paginating on the server, otherwise the filtered row count.
+  const total = table.getRowCount()
+  const selected = Object.keys(table.getState().rowSelection).length
   // Keep a custom initial pageSize (e.g. 5) selectable.
   const sizes = [...new Set([...pageSizeOptions, pageSize])].sort((a, b) => a - b)
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
       <p className="text-muted-foreground">
-        {total} row{total === 1 ? "" : "s"}
+        {showSelectedCount
+          ? `${selected} of ${total} row${total === 1 ? "" : "s"} selected`
+          : `${total} row${total === 1 ? "" : "s"}`}
       </p>
       <div className="flex flex-wrap items-center gap-4 lg:gap-6">
         <div className="flex items-center gap-2">

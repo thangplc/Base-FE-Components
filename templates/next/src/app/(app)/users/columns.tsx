@@ -1,19 +1,11 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontalIcon } from "lucide-react"
+import { CopyIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 
-import { DataTableColumnHeader } from "@/components/common/data-table"
+import { sortableHeader, type DataTableFilter, type RowAction } from "@/components/common/data-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import type { User } from "./data"
 
 const statusVariant = {
@@ -25,22 +17,26 @@ const statusVariant = {
 export const columns: ColumnDef<User>[] = [
   {
     accessorKey: "name",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+    header: sortableHeader("Name"),
+    meta: { label: "Name" },
     cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
   },
   {
     accessorKey: "email",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+    header: sortableHeader("Email"),
+    meta: { label: "Email" },
     cell: ({ row }) => <span className="text-muted-foreground">{row.original.email}</span>,
   },
   {
     accessorKey: "role",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
+    header: sortableHeader("Role"),
+    meta: { label: "Role" },
     cell: ({ row }) => <span className="capitalize">{row.original.role}</span>,
   },
   {
     accessorKey: "status",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+    header: sortableHeader("Status"),
+    meta: { label: "Status" },
     cell: ({ row }) => (
       <Badge variant={statusVariant[row.original.status]} className="capitalize">
         {row.original.status}
@@ -49,34 +45,57 @@ export const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: "createdAt",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+    header: sortableHeader("Created"),
+    meta: { label: "Created" },
     cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString("en-GB"),
     enableGlobalFilter: false,
   },
+]
+
+export const filters: DataTableFilter[] = [
   {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontalIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onClick={() => {
-              navigator.clipboard.writeText(row.original.id)
-              toast.success("ID copied")
-            }}
-          >
-            Copy ID
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
+    columnId: "role",
+    title: "Role",
+    type: "multi-select",
+    options: [
+      { label: "Admin", value: "admin" },
+      { label: "Editor", value: "editor" },
+      { label: "Viewer", value: "viewer" },
+    ],
+  },
+  {
+    columnId: "status",
+    title: "Status",
+    type: "select",
+    options: [
+      { label: "Active", value: "active" },
+      { label: "Invited", value: "invited" },
+      { label: "Suspended", value: "suspended" },
+    ],
+  },
+  { columnId: "createdAt", title: "Created", type: "date-range" },
+]
+
+export const rowActions = (user: User): RowAction<User>[] => [
+  { label: "Edit", icon: PencilIcon, onClick: () => toast(`Edit ${user.name}`) },
+  {
+    label: "Copy ID",
+    icon: CopyIcon,
+    onClick: () => {
+      navigator.clipboard.writeText(user.id)
+      toast.success("ID copied")
+    },
+  },
+  {
+    label: "Delete",
+    icon: Trash2Icon,
+    variant: "destructive",
+    confirm: { title: `Delete ${user.name}?`, description: "This user will lose access immediately." },
+    onClick: () => {
+      toast.success(`${user.name} deleted`)
+    },
   },
 ]
+
+// Functions passed from the (server) page must live in this client module.
+export const getRowId = (user: User) => user.id

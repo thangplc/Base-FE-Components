@@ -37,11 +37,26 @@ Cần control mới (DatePicker, Combobox...)? Dùng trực tiếp `FormField`:
 
 ```tsx
 const columns: ColumnDef<User>[] = [
-  { accessorKey: "name", header: ({ column }) => <DataTableColumnHeader column={column} title="Name" /> },
+  { accessorKey: "name", header: sortableHeader("Name"), meta: { label: "Name" } },
+  { accessorKey: "amount", header: sortableHeader("Amount"), meta: { className: "text-right" } },
 ]
 
-<DataTable columns={columns} data={users} searchPlaceholder="Search..." toolbarActions={<Button>Add</Button>} />
+<DataTable
+  columns={columns}
+  data={users}
+  getRowId={(u) => u.id}
+  searchPlaceholder="Search..."
+  filters={[{ columnId: "status", title: "Status", type: "multi-select", options: statusOptions }]}
+  rowActions={(u) => [
+    { label: "Edit", icon: PencilIcon, onClick: () => edit(u) },
+    { label: "Delete", variant: "destructive", confirm: { title: "Delete?" }, onClick: () => api.delete(u.id) },
+  ]}
+  maxBodyHeight={480}            // header cố định, scrollbar chỉ trong body
+  toolbarActions={<Button>Add</Button>}
+/>
 ```
+
+Bảng đầy đủ các props nằm ở mục DataTable trong README gốc. Lưu ý: trong Server Component, hàm truyền vào (`rowActions`, `getRowId`...) phải export từ một file `"use client"`, xem `app/(app)/users/columns.tsx`.
 
 ### ConfirmDialog
 

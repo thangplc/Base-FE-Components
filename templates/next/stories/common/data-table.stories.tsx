@@ -1,61 +1,221 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import type { ColumnDef } from "@tanstack/react-table"
+import { useEffect, useState } from "react"
+import type { ColumnFiltersState, PaginationState, SortingState } from "@tanstack/react-table"
+import { CopyIcon, DownloadIcon, PencilIcon, PlusIcon, SearchXIcon, Trash2Icon } from "lucide-react"
+import { toast } from "sonner"
 
-import { Badge } from "@/components/ui/badge"
-import { DataTable } from "@/components/common/data-table/data-table"
-import { DataTableColumnHeader } from "@/components/common/data-table/data-table-column-header"
+import { DataTable, type RowAction } from "@/components/common/data-table"
+import { EmptyState } from "@/components/common/empty-state"
+import { Button } from "@/components/ui/button"
+import { makePayments, paymentColumns, paymentFilters, payments, type Payment } from "../_data/payments"
 
-type Invoice = { id: string; customer: string; amount: number; status: "paid" | "pending" }
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-const invoices: Invoice[] = Array.from({ length: 23 }, (_, i) => ({
-  id: `INV-${String(i + 1).padStart(4, "0")}`,
-  customer: ["Acme", "Globex", "Initech", "Umbrella"][i % 4],
-  amount: ((i * 37) % 500) + 50,
-  status: i % 3 === 0 ? "pending" : "paid",
-}))
-
-const columns: ColumnDef<Invoice>[] = [
+const rowActions = (row: Payment): RowAction<Payment>[] => [
+  { label: "Edit", icon: PencilIcon, onClick: () => toast(`Edit ${row.id}`) },
   {
-    accessorKey: "id",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Invoice" />,
+    label: "Copy ID",
+    icon: CopyIcon,
+    onClick: () => {
+      navigator.clipboard.writeText(row.id)
+      toast.success("ID copied")
+    },
   },
   {
-    accessorKey: "customer",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Customer" />,
+    label: "Refund",
+    onClick: () => toast(`Refund ${row.id}`),
+    disabled: row.status !== "paid",
   },
   {
-    accessorKey: "amount",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Amount" />,
-    cell: ({ row }) => `$${row.original.amount.toFixed(2)}`,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <Badge variant={row.original.status === "paid" ? "default" : "secondary"}>
-        {row.original.status}
-      </Badge>
-    ),
+    label: "Delete",
+    icon: Trash2Icon,
+    variant: "destructive",
+    confirm: { title: `Delete ${row.id}?`, description: "This payment will be permanently removed." },
+    onClick: async () => {
+      await wait(800)
+      toast.success(`${row.id} deleted`)
+    },
   },
 ]
 
 const meta = {
   title: "Common/DataTable",
-  component: DataTable<Invoice, unknown>,
+  component: DataTable<Payment>,
   parameters: { layout: "padded" },
   args: {
-    columns,
-    data: invoices,
-    searchPlaceholder: "Search invoices...",
-    pageSize: 5,
+    columns: paymentColumns,
+    data: payments,
+    getRowId: (row) => row.id,
+    searchPlaceholder: "Search payments...",
   },
-} satisfies Meta<typeof DataTable<Invoice, unknown>>
+} satisfies Meta<typeof DataTable<Payment>>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+/** Search (debounced), click headers to sort (Shift + click with enableMultiSort), pagination, column visibility. */
+export const Default: Story = {
+  args: { enableMultiSort: true, defaultSorting: [{ id: "createdAt", desc: true }] },
+}
+
+/** select, multi-select, number-range and date-range filters, with facet counts and Reset. */
+export const Filters: Story = {
+  args: { filters: paymentFilters },
+}
+
+/** Actions column at the end: icons, disabled items, destructive + confirm (async). */
+export const RowActions: Story = {
+  args: { rowActions },
+}
+
+/** Checkbox column + bulk actions replacing the toolbar while rows are selected. */
+export const RowSelection: Story = {
+  args: {
+    enableRowSelection: (row) => row.status !== "failed",
+    onRowSelectionChange: (rows) => console.log("selected", rows),
+    bulkActions: (rows, { clear }) => (
+      <>
+        <Button size="sm" variant="outline" onClick={() => toast(`Export ${rows.length} rows`)}>
+          <DownloadIcon data-icon="inline-start" />
+          Export
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={() => {
+            toast.success(`Deleted ${rows.length} rows`)
+            clear()
+          }}
+        >
+          <Trash2Icon data-icon="inline-start" />
+          Delete
+        </Button>
+      </>
+    ),
+  },
+}
+
+/**
+ * maxBodyHeight: the header stays fixed and the scrollbar only spans the
+ * body. Narrow the window to see horizontal scrolling with the actions
+ * column pinned on the right.
+ */
+export const StickyHeaderAndScroll: Story = {
+  args: {
+    data: makePayments(200),
+    pageSize: 50,
+    maxBodyHeight: 360,
+    rowActions,
+    filters: paymentFilters,
+    toolbarActions: (
+      <Button>
+        <PlusIcon data-icon="inline-start" />
+        New payment
+      </Button>
+    ),
+  },
+}
+
+export const RowClick: Story = {
+  args: {
+    rowActions,
+    onRowClick: (row) => toast(`Open ${row.id}`, { description: row.customer }),
+  },
+}
+
+export const Loading: Story = {
+  args: { isLoading: true, data: [] },
+}
 
 export const Empty: Story = {
-  args: { data: [], emptyMessage: "No invoices found." },
+  args: {
+    data: [],
+    emptyState: (
+      <EmptyState
+        icon={<SearchXIcon />}
+        title="No payments found"
+        description="Try a different search or clear the filters."
+      />
+    ),
+  },
+}
+
+// --- Server-side --------------------------------------------------------
+
+const serverRows = makePayments(1234)
+
+/** Pretends to be an API: search, filter, sort and paginate on the "server". */
+async function fetchPayments(query: {
+  search: string
+  filters: ColumnFiltersState
+  sorting: SortingState
+  pagination: PaginationState
+}) {
+  await wait(500)
+  let rows = serverRows.filter((row) =>
+    `${row.id} ${row.customer} ${row.email}`.toLowerCase().includes(query.search.toLowerCase())
+  )
+  for (const filter of query.filters) {
+    const values = filter.value as string[]
+    rows = rows.filter((row) => values.includes(String(row[filter.id as keyof Payment])))
+  }
+  const sort = query.sorting[0]
+  if (sort) {
+    const key = sort.id as keyof Payment
+    rows = [...rows].sort((a, b) => (a[key] > b[key] ? 1 : -1) * (sort.desc ? -1 : 1))
+  }
+  const { pageIndex, pageSize } = query.pagination
+  return { rows: rows.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize), total: rows.length }
+}
+
+function ServerSideDemo() {
+  const [search, setSearch] = useState("")
+  const [filters, setFilters] = useState<ColumnFiltersState>([])
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
+  // Loading is derived: the last result belongs to an older query.
+  const key = JSON.stringify({ search, filters, sorting, pagination })
+  const [result, setResult] = useState({ key: "", rows: [] as Payment[], total: 0 })
+  const loading = result.key !== key
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPayments(JSON.parse(key)).then((data) => {
+      if (!cancelled) setResult({ key, ...data })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [key])
+
+  return (
+    <DataTable
+      columns={paymentColumns}
+      data={result.rows}
+      getRowId={(row) => row.id}
+      isLoading={loading}
+      searchPlaceholder="Search on the server..."
+      searchValue={search}
+      onSearchChange={setSearch}
+      filters={paymentFilters.filter((filter) => filter.type === "multi-select")}
+      columnFilters={filters}
+      onColumnFiltersChange={setFilters}
+      sorting={sorting}
+      onSortingChange={setSorting}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+      manualFiltering
+      manualSorting
+      manualPagination
+      rowCount={result.total}
+    />
+  )
+}
+
+/**
+ * Everything controlled from outside + `manual*` flags: the table only
+ * renders what the "API" returns (1,234 rows, 500 ms latency).
+ */
+export const ServerSide: Story = {
+  render: () => <ServerSideDemo />,
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import type { Column } from "@tanstack/react-table"
+import type { Column, HeaderContext } from "@tanstack/react-table"
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -36,4 +36,11 @@ export function DataTableColumnHeader<TData, TValue>({
       <Icon data-icon="inline-end" className={cn(!sorted && "text-muted-foreground")} />
     </Button>
   )
+}
+
+/** Column `header` renderer with a sort toggle: `header: sortableHeader("Name")`. */
+export function sortableHeader<TData, TValue = unknown>(title: string) {
+  return function SortableHeader({ column }: HeaderContext<TData, TValue>) {
+    return <DataTableColumnHeader column={column} title={title} />
+  }
 }

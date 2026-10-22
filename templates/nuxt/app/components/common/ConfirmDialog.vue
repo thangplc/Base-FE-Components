@@ -31,11 +31,12 @@ const props = withDefaults(defineProps<{
 })
 
 defineSlots<{
-  /** Element that opens the dialog, e.g. a `<Button>`. */
-  trigger: () => unknown
+  /** Element that opens the dialog, e.g. a `<Button>`. Omit when using `v-model:open`. */
+  trigger?: () => unknown
 }>()
 
-const open = ref(false)
+/** Optional `v-model:open` (e.g. opened from a menu item); otherwise internal. */
+const open = defineModel<boolean>('open', { default: false })
 const pending = ref(false)
 
 function onOpenChange(next: boolean) {
@@ -60,7 +61,7 @@ async function handleConfirm() {
 
 <template>
   <AlertDialog :open="open" @update:open="onOpenChange">
-    <AlertDialogTrigger as-child>
+    <AlertDialogTrigger v-if="$slots.trigger" as-child>
       <slot name="trigger" />
     </AlertDialogTrigger>
     <AlertDialogContent>

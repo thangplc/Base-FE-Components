@@ -3,7 +3,7 @@ import { PlusIcon } from "lucide-react"
 import { DataTable } from "@/components/common/data-table"
 import { PageHeader } from "@/components/common/page-header"
 import { Button } from "@/components/ui/button"
-import { columns } from "./columns"
+import { columns, filters, getRowId, rowActions } from "./columns"
 import { users } from "./data"
 
 export default function UsersPage() {
@@ -11,12 +11,16 @@ export default function UsersPage() {
     <>
       <PageHeader
         title="Users"
-        description="DataTable with search, sorting, column visibility and pagination."
+        description="DataTable with search, sorting, filters, row actions and pagination."
       />
       <DataTable
         columns={columns}
         data={users}
+        getRowId={getRowId}
         searchPlaceholder="Search users..."
+        filters={filters}
+        rowActions={rowActions}
+        defaultSorting={[{ id: "createdAt", desc: true }]}
         toolbarActions={
           <Button>
             <PlusIcon data-icon="inline-start" />
