@@ -5,6 +5,7 @@ import {
   Controller,
   type Control,
   type ControllerRenderProps,
+  type FieldError as FieldErrorType,
   type FieldPath,
   type FieldValues,
 } from "react-hook-form"
@@ -33,6 +34,14 @@ type FormFieldProps<T extends FieldValues> = FormFieldBaseProps<T> & {
   ) => ReactNode
 }
 
+/** Object values (a date range) can report errors on their keys, e.g. `period.to` on submit. */
+function firstError(error: FieldErrorType | undefined): { message?: string } | undefined {
+  if (!error || error.message) return error
+  return Object.values(error).find(
+    (nested): nested is FieldErrorType => typeof (nested as FieldErrorType)?.message === "string"
+  )
+}
+
 /**
  * Connects any control to react-hook-form and renders label, description
  * and error with the shadcn `Field` primitives. FormInput, FormSelect, ...
@@ -54,6 +63,7 @@ export function FormField<T extends FieldValues>({
       render={({ field, fieldState }) => {
         const id = `field-${field.name}`
         const control = children(field, { id, invalid: fieldState.invalid })
+        const error = firstError(fieldState.error)
 
         if (orientation === "horizontal") {
           return (
@@ -65,7 +75,7 @@ export function FormField<T extends FieldValues>({
               <FieldContent>
                 {label && <FieldLabel htmlFor={id}>{label}</FieldLabel>}
                 {description && <FieldDescription>{description}</FieldDescription>}
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                {fieldState.invalid && <FieldError errors={[error]} />}
               </FieldContent>
               {control}
             </Field>
@@ -81,7 +91,7 @@ export function FormField<T extends FieldValues>({
             {label && <FieldLabel htmlFor={id}>{label}</FieldLabel>}
             {control}
             {description && <FieldDescription>{description}</FieldDescription>}
-            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            {fieldState.invalid && <FieldError errors={[error]} />}
           </Field>
         )
       }}

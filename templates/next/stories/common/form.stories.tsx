@@ -6,12 +6,28 @@ import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
-import { FormInput, FormSelect, FormSwitch, FormTextarea } from "@/components/common/form"
+import {
+  FormCheckboxGroup,
+  FormDatePicker,
+  FormDateRangePicker,
+  FormInput,
+  FormSelect,
+  FormSwitch,
+  FormTextarea,
+} from "@/components/common/form"
 
 const schema = z.object({
   email: z.email("Invalid email address"),
   plan: z.string().min(1, "Please select a plan"),
   note: z.string().max(80, "Max 80 characters").optional(),
+  // valueFormat="yyyy-MM-dd" → the form holds a string.
+  startDate: z.string({ error: "Please pick a start date" }).min(1, "Please pick a start date"),
+  meetingAt: z.date({ error: "Please pick a date and time" }),
+  period: z
+    .object({ from: z.string().optional(), to: z.string().optional() }, { error: "Please pick a period" })
+    // No `path`: react-hook-form re-validates on change only at the field's own path.
+    .refine((range) => range.from && range.to, "Pick both a start and an end day"),
+  channels: z.array(z.string()).min(1, "Pick at least one channel"),
   terms: z.boolean().refine(Boolean, "You must accept the terms"),
 })
 
@@ -20,7 +36,7 @@ type Values = z.infer<typeof schema>
 function DemoForm() {
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", plan: "", note: "", terms: false },
+    defaultValues: { email: "", plan: "", note: "", terms: false, channels: [] },
   })
 
   return (
@@ -42,6 +58,32 @@ function DemoForm() {
           ]}
         />
         <FormTextarea control={form.control} name="note" label="Note" description="Optional." />
+        <FormDatePicker
+          control={form.control}
+          name="startDate"
+          label="Start date"
+          valueFormat="yyyy-MM-dd"
+          description='Form value: "2026-10-22".'
+        />
+        <FormDatePicker control={form.control} name="meetingAt" label="Meeting" withTime minuteStep={15} />
+        <FormDateRangePicker
+          control={form.control}
+          name="period"
+          label="Period"
+          valueFormat="yyyy-MM-dd"
+        />
+        <FormCheckboxGroup
+          control={form.control}
+          name="channels"
+          label="Notify me by"
+          selectAll
+          orientation="horizontal"
+          options={[
+            { value: "email", label: "Email" },
+            { value: "push", label: "Push" },
+            { value: "sms", label: "SMS" },
+          ]}
+        />
         <FormSwitch control={form.control} name="terms" label="Accept terms" />
         <Button type="submit">Submit</Button>
       </FieldGroup>

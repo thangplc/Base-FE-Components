@@ -49,3 +49,17 @@ export const WithDescriptions: Story = {
 export const Horizontal: Story = {
   args: { orientation: 'horizontal', selectAll: false },
 }
+
+/** `separator=","`: the value is one string ("read,write") instead of an array. */
+export const JoinedString: Story = {
+  render: args => ({
+    components: { CheckboxGroup },
+    setup: () => ({ args, value: ref('read,write') }),
+    template: `
+      <div class="flex flex-col gap-3">
+        <CheckboxGroup v-bind="args" v-model="value" separator="," />
+        <code class="text-xs text-muted-foreground">{{ JSON.stringify(value) }}</code>
+      </div>
+    `,
+  }),
+}

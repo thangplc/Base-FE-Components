@@ -53,3 +53,16 @@ function ControlledDemo() {
 }
 
 export const Controlled: Story = { render: () => <ControlledDemo /> }
+
+function SeparatorDemo() {
+  const [value, setValue] = useState("read,write")
+  return (
+    <div className="flex flex-col gap-3">
+      <CheckboxGroup options={permissions} selectAll separator="," value={value} onValueChange={setValue} />
+      <code className="text-xs text-muted-foreground">{JSON.stringify(value)}</code>
+    </div>
+  )
+}
+
+/** `separator=","`: the value is one string ("read,write") instead of an array. */
+export const JoinedString: Story = { render: () => <SeparatorDemo /> }

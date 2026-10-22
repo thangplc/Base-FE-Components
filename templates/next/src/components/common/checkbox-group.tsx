@@ -21,12 +21,17 @@ export type CheckboxGroupOption = {
   disabled?: boolean
 }
 
-type CheckboxGroupProps = {
+export type CheckboxGroupProps<T extends string[] | string = string[]> = {
   options: CheckboxGroupOption[]
   /** Controlled selected values. */
-  value?: string[]
-  defaultValue?: string[]
-  onValueChange?: (value: string[]) => void
+  value?: T | null
+  defaultValue?: T
+  onValueChange?: (value: T) => void
+  /**
+   * Emit the values joined into one string (e.g. "," → "email,sms")
+   * instead of an array; `value` is then split the same way.
+   */
+  separator?: string
   legend?: ReactNode
   /**
    * Adds a "select all" checkbox on top (pass a label, or `true` for
@@ -38,25 +43,29 @@ type CheckboxGroupProps = {
   className?: string
 }
 
+const toArray = (value: string[] | string | null | undefined, separator?: string) =>
+  Array.isArray(value) ? value : value && separator ? value.split(separator) : []
+
 /** A list of checkboxes with an optional tri-state "select all". */
-export function CheckboxGroup({
+export function CheckboxGroup<T extends string[] | string = string[]>({
   options,
   value: valueProp,
-  defaultValue = [],
+  defaultValue,
   onValueChange,
+  separator,
   legend,
   selectAll,
   orientation = "vertical",
   disabled,
   className,
-}: CheckboxGroupProps) {
+}: CheckboxGroupProps<T>) {
   const id = useId()
-  const [inner, setInner] = useState(defaultValue)
-  const value = valueProp ?? inner
+  const [inner, setInner] = useState(() => toArray(defaultValue, separator))
+  const value = valueProp === undefined ? inner : toArray(valueProp, separator)
 
   const setValue = (next: string[]) => {
     if (valueProp === undefined) setInner(next)
-    onValueChange?.(next)
+    onValueChange?.((separator === undefined ? next : next.join(separator)) as T)
   }
 
   // "Select all" only toggles enabled options; disabled ones keep their state.

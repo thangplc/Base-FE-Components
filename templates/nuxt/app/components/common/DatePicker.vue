@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import type { DateValue } from '@internationalized/date'
 import type { HTMLAttributes } from 'vue'
+import type { DateLike, DateValueFormat } from './date-value'
 import { computed, ref } from 'vue'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent } from '@/components/ui/popover'
 import { fromCalendarDate, toCalendarDate } from './date-picker'
 import DatePickerTrigger from './DatePickerTrigger.vue'
+import { formatDateValue, parseDateValue } from './date-value'
 
-/** Pick a day from a calendar in a popover (Reka calendar). `v-model`: Date | undefined. */
+/** Pick a day from a calendar in a popover (Reka calendar). `v-model`: a Date, or the shape set by `valueFormat`. */
 const props = withDefaults(defineProps<{
   placeholder?: string
   /** Earliest / latest selectable day. */
@@ -18,6 +20,11 @@ const props = withDefaults(defineProps<{
   locale?: string
   /** Show an × to clear the value. */
   clearable?: boolean
+  /**
+   * Shape of `v-model`: 'date' (default), 'iso', 'timestamp', a pattern
+   * like 'yyyy-MM-dd', or a `{ format, parse }` codec.
+   */
+  valueFormat?: DateValueFormat
   id?: string
   invalid?: boolean
   class?: HTMLAttributes['class']
@@ -25,17 +32,24 @@ const props = withDefaults(defineProps<{
   placeholder: 'Pick a date',
   locale: 'en-GB',
   clearable: true,
+  valueFormat: 'date',
 })
 
-const model = defineModel<Date | undefined>()
+const model = defineModel<DateLike | undefined>()
+
+// Work with a Date inside; emit the shape picked by `valueFormat`.
+const date = computed({
+  get: () => parseDateValue(model.value, props.valueFormat),
+  set: value => (model.value = formatDateValue(value, props.valueFormat)),
+})
 const open = ref(false)
 
 const text = computed(() =>
-  model.value?.toLocaleDateString(props.locale, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+  date.value?.toLocaleDateString(props.locale, { day: '2-digit', month: '2-digit', year: 'numeric' }),
 )
 
 function select(value: DateValue | undefined) {
-  model.value = value ? fromCalendarDate(value) : undefined
+  date.value = value ? fromCalendarDate(value) : undefined
   open.value = false
 }
 </script>
@@ -50,12 +64,12 @@ function select(value: DateValue | undefined) {
       :clearable="clearable"
       :invalid="invalid"
       :class="props.class"
-      @clear="model = undefined"
+      @clear="date = undefined"
     />
     <PopoverContent align="start" class="w-auto p-0">
       <Calendar
-        :model-value="toCalendarDate(model)"
-        :default-placeholder="toCalendarDate(model ?? minDate)"
+        :model-value="toCalendarDate(date)"
+        :default-placeholder="toCalendarDate(date ?? minDate)"
         :min-value="toCalendarDate(minDate)"
         :max-value="toCalendarDate(maxDate)"
         :locale="locale"

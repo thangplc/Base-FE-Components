@@ -1,12 +1,20 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { useState } from "react"
 
-import { DatePicker, DateTimePicker } from "@/components/common/date-picker"
+import {
+  DatePicker,
+  DateRangePicker,
+  DateTimePicker,
+  type DateRange,
+  type DateValueFormat,
+} from "@/components/common/date-picker"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 
 /**
- * Popover + Calendar (react-day-picker). Values are plain `Date`s; the month
- * and year dropdowns span minDate–maxDate (default 100 years back, 10 ahead).
+ * Popover + Calendar (react-day-picker). Values are `Date`s by default;
+ * `valueFormat` switches to an ISO string, a timestamp or a pattern such as
+ * "yyyy-MM-dd". The month and year dropdowns span minDate–maxDate (default
+ * 100 years back, 10 ahead).
  */
 const meta = {
   title: "Common/DatePicker",
@@ -59,3 +67,73 @@ function DateTimeDemo() {
 
 /** Day + time (HH:mm); changing one keeps the other. */
 export const DateTime: Story = { render: () => <DateTimeDemo /> }
+
+const formats: DateValueFormat[] = ["date", "iso", "timestamp", "yyyy-MM-dd", "dd/MM/yyyy HH:mm"]
+
+function ValueFormatDemo() {
+  const [values, setValues] = useState<Record<string, unknown>>({})
+  return (
+    <div className="flex w-80 flex-col gap-4">
+      {formats.map((format) => {
+        const key = String(format)
+        const Picker = key.includes("HH") ? DateTimePicker : DatePicker
+        return (
+          <div key={key} className="flex flex-col gap-1.5">
+            <code className="text-xs font-medium">valueFormat=&quot;{key}&quot;</code>
+            <Picker<string | number | Date>
+              valueFormat={format}
+              value={values[key] as string | number | Date | undefined}
+              onChange={(value) => setValues((prev) => ({ ...prev, [key]: value }))}
+            />
+            <code className="text-xs text-muted-foreground">
+              {values[key] === undefined ? "—" : `${typeof values[key]}: ${JSON.stringify(values[key])}`}
+            </code>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** The same pick, emitted in each `valueFormat` (a `{ format, parse }` codec works too). */
+export const ValueFormat: Story = {
+  decorators: [(Story) => <Story />],
+  render: () => <ValueFormatDemo />,
+}
+
+function RangeDemo({ valueFormat }: { valueFormat?: DateValueFormat }) {
+  const [value, setValue] = useState<DateRange<string | Date>>()
+  return (
+    <div className="flex flex-col gap-2">
+      <DateRangePicker<string | Date> value={value} onChange={setValue} valueFormat={valueFormat} />
+      <code className="text-xs text-muted-foreground">{value ? JSON.stringify(value) : "—"}</code>
+    </div>
+  )
+}
+
+/** Start and end day over two months; the popover stays open while you pick. */
+export const Range: Story = {
+  decorators: [(Story) => <div className="w-72"><Story /></div>],
+  render: () => <RangeDemo />,
+}
+
+/** `{ from, to }` as "yyyy-MM-dd" strings, the usual API query shape. */
+export const RangeAsStrings: Story = {
+  decorators: [(Story) => <div className="w-72"><Story /></div>],
+  render: () => <RangeDemo valueFormat="yyyy-MM-dd" />,
+}
+
+/** Only the next 60 days, one month at a time. */
+export const RangeMinMax: Story = {
+  decorators: [(Story) => <div className="w-72"><Story /></div>],
+  render: () => {
+    const today = new Date()
+    return (
+      <DateRangePicker
+        minDate={today}
+        maxDate={new Date(today.getFullYear(), today.getMonth(), today.getDate() + 60)}
+        numberOfMonths={1}
+      />
+    )
+  },
+}
