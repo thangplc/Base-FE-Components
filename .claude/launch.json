@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "next", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "-w", "@kit/next", "--", "--port", "3100"], "port": 3100 },
+    { "name": "nuxt", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "-w", "@kit/nuxt", "--", "--port", "3200"], "port": 3200 }
+  ]
+}

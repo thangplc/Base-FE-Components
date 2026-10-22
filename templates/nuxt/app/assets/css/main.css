@@ -1,0 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+/* data-open / data-checked / ... variants the shadcn "nova" style relies on */
+@import "shadcn/tailwind.css";
+@import "./tokens.css";
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}

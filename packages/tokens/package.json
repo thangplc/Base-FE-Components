@@ -1,0 +1,10 @@
+{
+  "name": "@kit/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared design tokens (CSS variables + Tailwind v4 theme) for every template",
+  "files": ["tokens.css"],
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  }
+}

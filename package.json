@@ -1,0 +1,28 @@
+{
+  "name": "fe-starter-kit",
+  "private": true,
+  "description": "Personal starter kit: base components for Next.js (shadcn/ui) and Nuxt (shadcn-vue) with shared design tokens",
+  "workspaces": [
+    "packages/*",
+    "templates/*"
+  ],
+  "scripts": {
+    "dev:next": "npm run dev -w @kit/next",
+    "dev:nuxt": "npm run dev -w @kit/nuxt",
+    "build:next": "npm run build -w @kit/next",
+    "build:nuxt": "npm run build -w @kit/nuxt",
+    "storybook:next": "npm run storybook -w @kit/next",
+    "storybook:nuxt": "npm run storybook -w @kit/nuxt",
+    "sync:tokens": "node scripts/sync-tokens.mjs",
+    "build": "npm run sync:tokens && npm run build:next && npm run build:nuxt",
+    "typecheck": "npm run typecheck -w @kit/next && npm run typecheck -w @kit/nuxt",
+    "lint": "npm run lint -w @kit/next"
+  },
+  "engines": {
+    "node": ">=20.9"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "unrs-resolver@1.12.2": true
+  }
+}
