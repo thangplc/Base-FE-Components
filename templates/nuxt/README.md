@@ -4,7 +4,7 @@ Nuxt 4 · Vue 3.5 · Tailwind v4 · shadcn-vue (Reka UI, style `nova`) · vee-va
 
 ```bash
 npm install
-npm run dev              # http://localhost:3000
+npm run dev              # http://localhost:3001
 npm run storybook        # http://localhost:6007
 npm run typecheck && npm run build
 ```

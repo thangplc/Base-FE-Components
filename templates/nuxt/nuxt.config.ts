@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  // Next.js uses 3000, so both templates can run side by side.
+  devServer: { port: 3001 },
   modules: ['shadcn-nuxt', '@nuxtjs/color-mode'],
   css: ['~/assets/css/main.css'],
   // components/ui is registered by shadcn-nuxt; common + layout are

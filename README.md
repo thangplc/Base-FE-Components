@@ -102,7 +102,7 @@ Hai template đều cần alias `@/` trỏ tới `src/` (Next) hoặc `app/` (Nu
 npm install            # cài cho toàn bộ workspace
 
 npm run dev:next       # http://localhost:3000
-npm run dev:nuxt       # http://localhost:3000 (chạy riêng từng cái hoặc đổi port)
+npm run dev:nuxt       # http://localhost:3001 (chạy song song với Next được)
 npm run storybook:next # http://localhost:6006
 npm run storybook:nuxt # http://localhost:6007
 npm run build          # sync tokens + build cả 2 template
