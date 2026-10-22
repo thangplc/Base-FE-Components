@@ -62,7 +62,7 @@ const textareaClass = 'border-input dark:bg-input/30 focus-visible:border-ring f
       :length="length"
       :minlength="minlength"
       :maxlength="maxlength"
-      class="absolute right-2.5 bottom-1.5"
+      class="absolute right-5 bottom-1.5"
     />
   </div>
 </template>

@@ -44,3 +44,17 @@ export const WithLabel: Story = {
     `,
   }),
 }
+
+/** maxlength / minlength show a counter at the end of the field (red below min / at max). */
+export const CharacterCount: Story = {
+  render: () => ({
+    components: { Input },
+    template: `
+      <div class="flex flex-col gap-3">
+        <Input placeholder="Username (max 20)" :maxlength="20" default-value="janedoe" />
+        <Input placeholder="Password (min 8)" type="password" :minlength="8" default-value="abc" />
+        <Input placeholder="Code (4–6)" :minlength="4" :maxlength="6" />
+      </div>
+    `,
+  }),
+}

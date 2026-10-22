@@ -47,7 +47,7 @@ function Textarea({ className, showCount, onChange, ...props }: TextareaProps) {
         length={length}
         minLength={minLength}
         maxLength={maxLength}
-        className="absolute right-2.5 bottom-1.5"
+        className="absolute right-5 bottom-1.5"
       />
     </div>
   )

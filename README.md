@@ -132,10 +132,10 @@ Nhớ thêm vào **cả hai** template để chúng không lệch nhau.
 
 | Nhóm | Next (`components/…`) | Nuxt (`components/…`) |
 |---|---|---|
-| Base (ui) | Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Label, Field, InputGroup, Dialog, AlertDialog, Sheet, DropdownMenu, Popover, Tooltip, Command, Sonner (toast), Card, Badge, Avatar, Table, Tabs, Breadcrumb, Pagination, Sidebar, ScrollArea, Separator, Skeleton, Spinner, Empty | Giống bên Next, cộng thêm `form` (vee-validate) |
+| Base (ui) | Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Label, Field, InputGroup, Dialog, AlertDialog, Sheet, DropdownMenu, Popover, Tooltip, Command, Sonner (toast), Card, Badge, Avatar, Table, Tabs, Breadcrumb, Pagination, Sidebar, ScrollArea, Separator, Skeleton, Spinner, Empty, Progress, Calendar | Giống bên Next, cộng thêm `form` (vee-validate) |
 | Form | `FormField` (render-prop generic), `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch` | `FormFieldLayout`, `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch` |
 | Data | `DataTable`: search, sort, filter, cột action, chọn dòng, sticky header, phân trang, chế độ server-side (xem [mục DataTable](#datatable)) | Giống bên Next |
-| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle`, `TruncatedText` (xem [mục TruncatedText](#truncatedtext)) | Giống bên Next |
+| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle`, `TruncatedText` (xem [mục TruncatedText](#truncatedtext)), `CheckboxGroup`, `ProgressBar`, `Stepper`, `DatePicker`, `DateTimePicker` (xem [mục Form & tiến trình](#form--tiến-trình)) | Giống bên Next |
 | Layout | `AppShell` = Sidebar (thu gọn được) + Header (breadcrumb, theme toggle) | Giống bên Next (`layouts/default.vue`) |
 
 Chi tiết cách dùng nằm trong README của từng template và trong Storybook.
@@ -198,6 +198,18 @@ Trong `columns`, có thể dùng thêm:
 - **Server-side:** điều khiển state từ ngoài và bật `manualSorting` / `manualFiltering` / `manualPagination`, truyền thêm `rowCount`. Khi search hoặc filter thay đổi, bảng tự quay về trang 1.
 
 Story `Common/DataTable` có ví dụ cho từng tính năng, gồm cả một "API" giả lập 1.234 dòng.
+
+## Form & tiến trình
+
+| Component | Cách dùng |
+|---|---|
+| `Input` / `Textarea` + bộ đếm | Đặt `maxLength` / `minLength` (Vue: `maxlength` / `minlength`) là có bộ đếm `12/100` (hoặc `3 / min 10`), ở cuối ô Input và góc dưới bên phải Textarea. Chữ đỏ khi chưa đủ min hoặc khi chạm max. `showCount` để bật/tắt hẳn bộ đếm. Có bộ đếm thì `className` áp lên khung bao ngoài |
+| `Checkbox` indeterminate | `checked="indeterminate"` (Vue: `model-value="indeterminate"`) hiện nền primary kèm dấu − |
+| `CheckboxGroup` | `options`, `value` / `onValueChange` (Vue: `v-model`), `selectAll` (✓ / − / trống, bỏ qua item `disabled`), `orientation` |
+| `Progress` | `value`, `max`, `size` (sm/default/lg), `variant` (default/success/warning/destructive), `indeterminate` |
+| `ProgressBar` | Progress kèm `label`, giá trị (`formatValue`, mặc định `42%`) và `description` |
+| `Stepper` | `steps` ({ title, description, icon, status: "error" }), `current`, `onStepClick` (Vue: `@step-click`; mặc định chỉ bấm được bước đã xong, hoặc tất cả với `allowJumpAhead`), `orientation` |
+| `DatePicker` / `DateTimePicker` | Popover + Calendar (react-day-picker / Reka). Giá trị là `Date` (Vue: `v-model`); có `minDate`, `maxDate`, `locale` (mặc định `en-GB` → 22/10/2026; ngày đầu tuần theo locale), `clearable`, `placeholder`, `aria-invalid` / `invalid`. DateTimePicker có thêm ô giờ HH:mm (`minuteStep`); đổi ngày giữ nguyên giờ và ngược lại |
 
 ## TruncatedText
 
