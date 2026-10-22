@@ -11,7 +11,11 @@ import { formatWallValue, parseDatePattern, parseWallValue, toWallTime } from '.
 import PickerTrigger from './PickerTrigger.vue'
 
 /** Pick a day from a calendar in a popover (Reka calendar). `v-model`: a Date, or the shape set by `valueFormat`. */
-const props = withDefaults(defineProps<PickerBaseProps>(), {
+const props = withDefaults(defineProps<PickerBaseProps & {
+  /** Month / year as dropdowns (default) or a plain label. */
+  captionLayout?: 'dropdown' | 'label'
+}>(), {
+  captionLayout: 'dropdown',
   locale: 'en-GB',
   clearable: true,
   valueFormat: 'date',
@@ -86,7 +90,7 @@ function select(day: DateValue | undefined) {
         :max-value="toCalendarDate(max)"
         :is-date-disabled="(day: DateValue) => isDayDisabled(fromCalendarDate(day), rules)"
         :locale="locale"
-        layout="month-and-year"
+        :layout="captionLayout === 'dropdown' ? 'month-and-year' : undefined"
         prevent-deselect
         initial-focus
         @update:placeholder="(day: DateValue) => (month = day)"

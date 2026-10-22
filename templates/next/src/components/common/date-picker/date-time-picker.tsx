@@ -38,6 +38,7 @@ export function DateTimePicker<T extends DateLike = Date>({
   editable = false,
   timeZone,
   labels: labelsProp,
+  captionLayout = "dropdown",
   minuteStep = 1,
   secondStep = 1,
   withSeconds = false,
@@ -117,7 +118,7 @@ export function DateTimePicker<T extends DateLike = Date>({
             // Keep the time when the day changes (moved into the new day's window).
             onSelect={(day) => emitAt(day, value ? secondsOfDay(value) : 0)}
             disabled={dayDisabled}
-            captionLayout="dropdown"
+            captionLayout={captionLayout}
             minDate={min}
             maxDate={max}
             localeTag={locale}

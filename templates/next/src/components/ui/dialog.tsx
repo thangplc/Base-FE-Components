@@ -31,15 +31,30 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
+/**
+ * Backdrop behind the dialog: "blur" (default: light tint + blur), "dim"
+ * (darker tint, no blur) or "none" (transparent, still catches outside clicks).
+ * For a page that stays usable behind it, use `modal={false}` on Dialog.
+ */
+const overlayVariants = {
+  blur: "bg-black/10 supports-backdrop-filter:backdrop-blur-xs",
+  dim: "bg-black/40",
+  none: "bg-transparent",
+}
+
+export type DialogOverlayVariant = keyof typeof overlayVariants
+
 function DialogOverlay({
   className,
+  variant = "blur",
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+}: React.ComponentProps<typeof DialogPrimitive.Overlay> & { variant?: DialogOverlayVariant }) {
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        overlayVariants[variant],
         className
       )}
       {...props}
@@ -51,13 +66,16 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  overlay = "blur",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** Backdrop: "blur" (default), "dim" or "none". Not rendered when the Dialog has `modal={false}`. */
+  overlay?: DialogOverlayVariant
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay variant={overlay} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(

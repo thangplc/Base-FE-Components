@@ -11,6 +11,8 @@ import type { PickerBaseProps } from "./types"
 export type DatePickerProps<T extends DateLike = Date> = PickerBaseProps & {
   value?: T | null
   onChange?: (value: T | undefined) => void
+  /** Month / year as dropdowns (default) or a plain label. */
+  captionLayout?: "dropdown" | "label"
 }
 
 /** Pick a day from a calendar in a popover (react-day-picker). */
@@ -29,6 +31,7 @@ export function DatePicker<T extends DateLike = Date>({
   editable = false,
   timeZone,
   labels: labelsProp,
+  captionLayout = "dropdown",
   id,
   ref,
   className,
@@ -93,7 +96,7 @@ export function DatePicker<T extends DateLike = Date>({
             setOpen(false)
           }}
           disabled={(day) => isDayDisabled(day, rules)}
-          captionLayout="dropdown"
+          captionLayout={captionLayout}
           minDate={min}
           maxDate={max}
           localeTag={locale}

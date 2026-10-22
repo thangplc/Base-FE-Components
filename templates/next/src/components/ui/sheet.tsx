@@ -29,15 +29,30 @@ function SheetPortal({
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
+/**
+ * Backdrop behind the sheet: "blur" (default: light tint + blur), "dim"
+ * (darker tint, no blur) or "none" (transparent, still catches outside clicks).
+ * For a page that stays usable behind it, use `modal={false}` on Sheet.
+ */
+const overlayVariants = {
+  blur: "bg-black/10 supports-backdrop-filter:backdrop-blur-xs",
+  dim: "bg-black/40",
+  none: "bg-transparent",
+}
+
+export type SheetOverlayVariant = keyof typeof overlayVariants
+
 function SheetOverlay({
   className,
+  variant = "blur",
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
+}: React.ComponentProps<typeof SheetPrimitive.Overlay> & { variant?: SheetOverlayVariant }) {
   return (
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-50 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        overlayVariants[variant],
         className
       )}
       {...props}
@@ -50,14 +65,17 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  overlay = "blur",
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
+  /** Backdrop: "blur" (default), "dim" or "none". Not rendered when the Sheet has `modal={false}`. */
+  overlay?: SheetOverlayVariant
 }) {
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay variant={overlay} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}

@@ -18,6 +18,8 @@ interface SheetContentProps extends DialogContentProps {
   class?: HTMLAttributes['class']
   side?: 'top' | 'right' | 'bottom' | 'left'
   showCloseButton?: boolean
+  /** Backdrop: 'blur' (default), 'dim' or 'none'. Not rendered when the Sheet has `:modal="false"`. */
+  overlay?: 'blur' | 'dim' | 'none'
 }
 
 defineOptions({
@@ -27,17 +29,18 @@ defineOptions({
 const props = withDefaults(defineProps<SheetContentProps>(), {
   side: 'right',
   showCloseButton: true,
+  overlay: 'blur',
 })
 const emits = defineEmits<DialogContentEmits>()
 
-const delegatedProps = reactiveOmit(props, 'class', 'side', 'showCloseButton')
+const delegatedProps = reactiveOmit(props, 'class', 'side', 'showCloseButton', 'overlay')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
   <DialogPortal>
-    <SheetOverlay />
+    <SheetOverlay :variant="overlay" />
     <DialogContent
       data-slot="sheet-content"
       :data-side="side"

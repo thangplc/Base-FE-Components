@@ -73,3 +73,41 @@ export const Sides: Story = {
     </div>
   ),
 }
+
+/**
+ * `overlay` on SheetContent: "blur" (default), "dim" or "none". With
+ * `modal={false}` on Sheet there is no overlay and the page stays usable.
+ */
+export const Overlay: Story = {
+  render: () => (
+    <div className="flex flex-wrap gap-2">
+      {(["blur", "dim", "none"] as const).map((overlay) => (
+        <Sheet key={overlay}>
+          <SheetTrigger asChild>
+            <Button variant="outline">overlay=&quot;{overlay}&quot;</Button>
+          </SheetTrigger>
+          <SheetContent overlay={overlay}>
+            <SheetHeader>
+              <SheetTitle>overlay=&quot;{overlay}&quot;</SheetTitle>
+              <SheetDescription>Click outside to close.</SheetDescription>
+            </SheetHeader>
+          </SheetContent>
+        </Sheet>
+      ))}
+      <Sheet modal={false}>
+        <SheetTrigger asChild>
+          <Button variant="outline">modal=&#123;false&#125;</Button>
+        </SheetTrigger>
+        <SheetContent onInteractOutside={(event) => event.preventDefault()}>
+          <SheetHeader>
+            <SheetTitle>Non-modal</SheetTitle>
+            <SheetDescription>
+              The page behind stays clickable and scrollable; outside clicks don&apos;t close it
+              (onInteractOutside prevents that). Use the × to close.
+            </SheetDescription>
+          </SheetHeader>
+        </SheetContent>
+      </Sheet>
+    </div>
+  ),
+}

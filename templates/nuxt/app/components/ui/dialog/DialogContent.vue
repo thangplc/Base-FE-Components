@@ -18,19 +18,25 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const props = withDefaults(defineProps<DialogContentProps & { class?: HTMLAttributes['class'], showCloseButton?: boolean }>(), {
+const props = withDefaults(defineProps<DialogContentProps & {
+  class?: HTMLAttributes['class']
+  showCloseButton?: boolean
+  /** Backdrop: 'blur' (default), 'dim' or 'none'. Not rendered when the Dialog has `:modal="false"`. */
+  overlay?: 'blur' | 'dim' | 'none'
+}>(), {
   showCloseButton: true,
+  overlay: 'blur',
 })
 const emits = defineEmits<DialogContentEmits>()
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class', 'showCloseButton', 'overlay')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay :variant="overlay" />
     <DialogContent
       data-slot="dialog-content"
       v-bind="{ ...$attrs, ...forwarded }"

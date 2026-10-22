@@ -27,7 +27,11 @@ import TimeColumns from './TimeColumns.vue'
  * Pick a day and a time (hour / minute columns); the popover stays open to
  * adjust both. `v-model`: a Date, or the shape set by `valueFormat`.
  */
-const props = withDefaults(defineProps<PickerBaseProps & PickerTimeProps>(), {
+const props = withDefaults(defineProps<PickerBaseProps & PickerTimeProps & {
+  /** Month / year as dropdowns (default) or a plain label. */
+  captionLayout?: 'dropdown' | 'label'
+}>(), {
+  captionLayout: 'dropdown',
   locale: 'en-GB',
   clearable: true,
   valueFormat: 'date',
@@ -135,7 +139,7 @@ function pickNow() {
           :max-value="toCalendarDate(max)"
           :is-date-disabled="(day: DateValue) => dayDisabled(fromCalendarDate(day))"
           :locale="locale"
-          layout="month-and-year"
+          :layout="captionLayout === 'dropdown' ? 'month-and-year' : undefined"
           prevent-deselect
           @update:placeholder="(day: DateValue) => (month = day)"
           @update:model-value="(day) => selectDay(day as DateValue | undefined)"
