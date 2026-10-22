@@ -3,7 +3,7 @@ import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 /**
  * Switches light / dark / system through @nuxtjs/color-mode (mocked in
- * Storybook to toggle the `dark` class on <html>).
+ * Storybook to toggle the `dark` class on `<html>`).
  */
 const meta = {
   title: 'Common/ThemeToggle',

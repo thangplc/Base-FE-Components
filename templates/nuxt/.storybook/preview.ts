@@ -4,6 +4,7 @@ import { Toaster } from '../app/components/ui/sonner'
 import { TooltipProvider } from '../app/components/ui/tooltip'
 import { mockRoute } from './mocks/nuxt-imports'
 import '../app/assets/css/main.css'
+import './preview.css'
 
 const preview: Preview = {
   // Every component gets an auto-generated Docs page (props table + all stories).

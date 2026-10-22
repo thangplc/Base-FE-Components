@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<{
 })
 
 defineSlots<{
-  /** Element that opens the dialog, e.g. a <Button>. */
+  /** Element that opens the dialog, e.g. a `<Button>`. */
   trigger: () => unknown
 }>()
 

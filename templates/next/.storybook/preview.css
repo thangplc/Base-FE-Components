@@ -1,0 +1,8 @@
+/*
+ * Docs pages keep Storybook's white chrome. Paint every story canvas with
+ * the app background so dark mode (toolbar or ThemeToggle) shows there too.
+ */
+.docs-story {
+  background-color: var(--background);
+  color: var(--foreground);
+}

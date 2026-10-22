@@ -16,7 +16,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 
 type ConfirmDialogProps = {
-  /** Element that opens the dialog, e.g. a <Button>. */
+  /** Element that opens the dialog, e.g. a `<Button>`. */
   trigger: ReactElement
   title: ReactNode
   description?: ReactNode

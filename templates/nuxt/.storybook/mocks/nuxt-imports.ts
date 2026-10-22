@@ -10,7 +10,8 @@ export function useRoute() {
   return mockRoute
 }
 
-const colorMode = reactive({ preference: 'system', value: 'light' })
+// Starts in light mode, in sync with the Storybook toolbar default.
+const colorMode = reactive({ preference: 'light', value: 'light' })
 
 watchEffect(() => {
   if (typeof document === 'undefined')
