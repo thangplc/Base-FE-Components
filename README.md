@@ -133,9 +133,10 @@ Nhớ thêm vào **cả hai** template để chúng không lệch nhau.
 | Nhóm | Next (`components/…`) | Nuxt (`components/…`) |
 |---|---|---|
 | Base (ui) | Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Label, Field, InputGroup, Dialog, AlertDialog, Sheet, DropdownMenu, Popover, Tooltip, Command, Sonner (toast), Card, Badge, Avatar, Table, Tabs, Breadcrumb, Pagination, Sidebar, ScrollArea, Separator, Skeleton, Spinner, Empty, Progress, Calendar | Giống bên Next, cộng thêm `form` (vee-validate) |
-| Form | `FormField` (render-prop generic), `FormInput`, `FormTextarea`, `FormSelect`, `FormSwitch`, `FormCheckboxGroup`, `FormDatePicker`, `FormDateRangePicker` | `FormFieldLayout` + các wrapper cùng tên |
-| Data | `DataTable`: search, sort, filter, cột action, chọn dòng, sticky header, phân trang, chế độ server-side (xem [mục DataTable](#datatable)) | Giống bên Next |
-| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle`, `TruncatedText` (xem [mục TruncatedText](#truncatedtext)), `CheckboxGroup`, `ProgressBar`, `Stepper`, `DatePicker`, `DateTimePicker`, `DateRangePicker`, `DateTimeRangePicker` trong `common/date-picker/` (xem [mục Date picker](#date-picker)) | Giống bên Next |
+| Form | `FormField` (render-prop generic), `FormInput`, `FormTextarea`, `FormSelect` (cả `multiple` / `searchable`), `FormSwitch`, `FormCheckboxGroup`, `FormDatePicker`, `FormDateRangePicker`, `FormRate`, `FormTransfer`, `FormTreeSelect`, `FormCascader` | `FormFieldLayout` + các wrapper cùng tên |
+| Data | `DataTable`: search, sort, filter, cột action, chọn dòng (checkbox / radio), header nhiều tầng, group dòng, gộp ô, sticky header, phân trang, chế độ server-side (xem [mục DataTable](#datatable)) | Giống bên Next |
+| Chọn dữ liệu | `Combobox` (một / nhiều giá trị, xem [mục Chọn dữ liệu](#chọn-dữ-liệu)), `Transfer`, `Tree`, `TreeSelect`, `Cascader`, `Rate` | Giống bên Next |
+| Khác | `ConfirmDialog` (hỗ trợ async), `EmptyState`, `PageHeader`, `ThemeToggle`, `TruncatedText` (xem [mục TruncatedText](#truncatedtext)), `CheckboxGroup`, `ProgressBar` + `ProgressCircle`, `Stepper`, `Collapse`, `DatePicker`, `DateTimePicker`, `DateRangePicker`, `DateTimeRangePicker` trong `common/date-picker/` (xem [mục Date picker](#date-picker)) | Giống bên Next |
 | Layout | `AppShell` = Sidebar (thu gọn được) + Header (breadcrumb, theme toggle) | Giống bên Next (`layouts/default.vue`) |
 
 Chi tiết cách dùng nằm trong README của từng template và trong Storybook.
@@ -170,8 +171,16 @@ Cùng một bộ props cho cả hai template. Chỗ nào Vue khác thì được
 | Toolbar | `toolbarActions` | | slot `#toolbar-actions` |
 | | `enableColumnVisibility`, `defaultColumnVisibility` | `true`, `{}` | |
 | Chọn dòng | `enableRowSelection` (boolean hoặc `(row) => boolean`) | `false` | |
-| | `onRowSelectionChange(rows)` | | `@selection-change` |
+| | `selectionType`: `"checkbox"` hoặc `"radio"` (mỗi lần một dòng) | `"checkbox"` | |
+| | `selectAllMode`: checkbox ở header chọn trang hiện tại (`"page"`) hay mọi dòng đã lọc (`"all"`) | `"page"` | |
+| | `selectionColumnPinned`: cột checkbox đứng yên bên trái khi bảng cuộn ngang | `true` | |
+| | `rowSelection` (mảng id theo `getRowId`, giữ qua các trang, cả server-side) / `onRowSelectionChange(rows, ids)` | tự quản lý | `v-model:row-selection`, `@selection-change` |
 | | `bulkActions(rows, { clear })` | | slot `#bulk-actions="{ rows, clear }"` |
+| Header nhiều tầng | Lồng `columns: [...]` trong một column def; cột không thuộc nhóm tự kéo dài qua các hàng header. `bordered`: kẻ dọc giữa các ô | `false` | |
+| Group dòng | `grouping` / `defaultGrouping` (mảng id cột, lồng theo thứ tự) / `onGroupingChange` | `[]` | `v-model:grouping` |
+| | `enableGrouping`: menu "Group" trên toolbar | `false` | |
+| | `defaultExpanded`, `paginateGroups` (phân trang theo nhóm cấp 1), `keepGroupedColumns` | `true`, `false`, `false` | |
+| | `renderGroupRow(row)`: nhãn hàng nhóm (mặc định "Cột: giá trị") | | slot `#group-row="{ row }"` |
 
 **Vị trí của action:** `rowActionsDisplay` đặt kiểu mặc định cho cả bảng. Từng action có thể ghi đè bằng `display`:
 - `"inline"`: nếu có `icon` thì là nút icon kèm tooltip là `label`; nếu không có icon thì là nút chữ.
@@ -192,6 +201,8 @@ Trong `columns`, có thể dùng thêm:
   Muốn cắt chữ thì cột phải có độ rộng giới hạn. Khi có `maxBodyHeight` thì luôn có giới hạn. Ở layout thường, cột tự giãn theo nội dung, nên cần tự giới hạn bằng `meta.className`, ví dụ `"max-w-60"`.
 - `enableSorting: false` / `enableGlobalFilter: false`: tắt sort hoặc tìm kiếm cho cột đó.
 - `sortableHeader("Tên")`: tạo nhanh header có nút sort.
+- `aggregationFn` (`"sum"`, `"count"`, `"mean"`, `"min"`, `"max"` hoặc hàm) + `aggregatedCell`: giá trị tổng hợp trên hàng nhóm khi group dòng.
+- `meta.mergeRows: true`: gộp các dòng liền nhau cùng giá trị thành một ô (rowSpan), kiểu Excel. Nhiều cột gộp thì lồng nhau theo thứ tự cột; không áp dụng khi đang group. Nên sort theo các cột gộp trước.
 
 **Hai chế độ dùng:**
 - **Tự quản lý:** chỉ truyền `data`. Search, sort, filter và phân trang đều chạy ở client.
@@ -207,12 +218,31 @@ Story `Common/DataTable` có ví dụ cho từng tính năng, gồm cả một "
 | `Checkbox` indeterminate | `checked="indeterminate"` (Vue: `model-value="indeterminate"`) hiện nền primary kèm dấu − |
 | `CheckboxGroup` | `options`, `value` / `onValueChange` (Vue: `v-model`), `selectAll` (✓ / − / trống, bỏ qua item `disabled`), `orientation`. Mặc định giá trị là `string[]`; đặt `separator=","` thì thành chuỗi `"email,sms"` |
 | `Progress` | `value`, `max`, `size` (sm/default/lg), `variant` (default/success/warning/destructive), `indeterminate` |
-| `ProgressBar` | Progress kèm `label`, giá trị (`formatValue`, mặc định `42%`) và `description` |
+| `ProgressBar` | Progress kèm `label`, giá trị (`formatValue`, mặc định `42%`) và `description`; `type="circle"` để thành dạng tròn |
+| `ProgressCircle` | Vòng tròn SVG: `value`, `max`, `variant`, `indeterminate` (vòng xoay), `size` (sm 40 / default 64 / lg 96 hoặc số px), `strokeWidth`, `lineCap`, `gapDegree` (vd 75 thành dạng gauge hở ở đáy), `showValue` / `formatValue`, nội dung ở giữa qua `children` (Vue: slot) |
+| `Rate` | `value` (Vue: `v-model`), `count`, `allowHalf`, `allowClear` (bấm lại giá trị hiện tại thì về 0), `readOnly`, `disabled`, `size`, `character` (icon hoặc chữ), `renderCharacter(index)`, `tooltips`, `showValue`, `onHoverChange` (Vue: `@hover-change`); bàn phím ← → Home End |
+| `Collapse` | Dựng trên shadcn Accordion. `items` ({ key, title, content, extra, icon, disabled }; Vue: nội dung qua slot `#[key]`, `#extra="{ item }"`), `accordion` (mỗi lần một panel), `variant` (bordered / separated / ghost), `size`, `expandIcon` (chevron / plus-minus), `expandIconPosition`, `collapsible` (`"icon"`: chỉ icon mới mở/đóng), `forceMount` |
 | `Stepper` | `steps` ({ title, description, icon, status: "error" }), `current`, `onStepClick` (Vue: `@step-click`; mặc định chỉ bấm được bước đã xong, hoặc tất cả với `allowJumpAhead`), `orientation` |
 | `DatePicker`, `DateTimePicker`, `DateRangePicker`, `DateTimeRangePicker` | Xem [mục Date picker](#date-picker) |
 | `FormDatePicker` | DatePicker nối với react-hook-form / vee-validate. Thêm `withTime` (Vue: `with-time`) để thành DateTimePicker; các prop khác (`valueFormat`, `minDate`...) truyền thẳng xuống picker |
 | `FormDateRangePicker` | DateRangePicker trong form, `withTime` để thành DateTimeRangePicker. Rule cho khoảng ngày đặt lên **chính object** (zod `.refine(...)` **không có `path`**): khi đang chọn, react-hook-form / vee-validate chỉ revalidate lỗi tại path của field (`period`), không phải `period.to` |
 | `FormCheckboxGroup` | CheckboxGroup trong form; `label` thành legend của nhóm; hỗ trợ `separator` |
+| `FormSelect` | `multiple` (string[]) hoặc `searchable` thì dùng Combobox; nhận thêm các prop của Combobox (`maxTagCount`, `creatable`, `onSearch`...) |
+| `FormRate`, `FormTransfer`, `FormTreeSelect`, `FormCascader` | Nối các component cùng tên với form; value lần lượt là số, mảng key, key hoặc mảng key, đường dẫn hoặc mảng đường dẫn |
+
+**Sheet / Dialog:** `overlay` trên `SheetContent` / `DialogContent`: `"blur"` (mặc định, tối nhẹ + blur), `"dim"` (tối hơn, không blur), `"none"` (trong suốt). Đặt `modal={false}` (Vue: `:modal="false"`) trên Sheet / Dialog thì không có overlay, trang phía sau vẫn bấm và cuộn được; muốn bấm ra ngoài không đóng thì chặn `onInteractOutside` (Vue: `@interact-outside`).
+
+## Chọn dữ liệu
+
+| Component | Cách dùng |
+|---|---|
+| `Combobox` | Select có ô tìm kiếm (không phân biệt dấu: "ha noi" tìm được "Hà Nội"), dựng trên Popover. `options` ({ value, label, description, disabled, group }), `multiple` (chip, "+N" sau `maxTagCount`, `tagMode="count"`), `value` / `onValueChange` (Vue: `v-model`), `maxCount`, `showSelectAll`, `creatable`, `closeOnSelect`, `clearable`, `onSearch` + `loading` (tìm phía server; Vue: `@search`), `renderOption` (Vue: slot `#option`), `labels`. Bàn phím ↑ ↓ Enter, Backspace xoá chip cuối |
+| `Transfer` | Hai danh sách: `dataSource`, `targetKeys` / `onValueChange(keys, direction, moved)` (Vue: `v-model` + `@change`), `selectedKeys` / `onSelectChange` (Vue: `v-model:selected-keys`), `titles`, `showSearch`, `filterOption`, `showSelectAll`, `oneWay` (chỉ chuyển sang phải, bỏ bằng ×), `renderItem` / `footer` (Vue: slot), `listHeight`, `operations`. Double-click một item để chuyển nhanh |
+| `Tree` | `treeData` ({ key, title, children, icon, disabled, disableCheckbox, selectable, isLeaf }), `expandedKeys` / `defaultExpandAll`, `expandIcon` (chevron / plus-minus), `showLine`, chọn (`selectable`, `multiple`, `selectedKeys`), checkbox 3 trạng thái (`checkable`, `checkedKeys`, `onCheck(checked, half)`, `checkStrictly`), kéo thả (`draggable`, `allowDrop`, `onDrop` trả về **cây đã di chuyển xong**, thả trước / sau / vào trong), `loadData` (tải con khi mở), `searchValue` / `filterNode`, `titleRender` (Vue: slot `#title`), `height`. Vue: `v-model:expanded-keys / selected-keys / checked-keys`, `@select`, `@check`, `@drop`. Bàn phím ↑ ↓ ← → Enter Space |
+| `TreeSelect` | Dropdown chứa Tree: một node, `multiple`, hoặc `treeCheckable` với `showCheckedStrategy` (`"all"` mặc định, `"parent"`: cha đủ con thì chỉ lưu cha, `"child"`: chỉ lá), `showSearch`, `allowClear`, `maxTagCount`, `treeDefaultExpandAll`, `expandIcon`, `showLine`, `loadData`, `dropdownHeight` |
+| `Cascader` | Chọn theo cột (tỉnh → quận → phường): `options` ({ value, label, children, disabled, isLeaf }), giá trị là đường dẫn `["hn", "ba-dinh"]` (`multiple`: mảng đường dẫn, checkbox 3 trạng thái, `showCheckedStrategy` mặc định `"parent"`), `changeOnSelect`, `expandTrigger` (click / hover), `displayRender`, `separator`, `showSearch` (tìm theo cả đường dẫn), `loadData`, `allowClear`, `maxTagCount`. Màn hình nhỏ hiện từng cột một kèm nút quay lại |
+
+Logic không phụ thuộc framework nằm trong file TS dùng chung, giống nhau ở hai template: `combobox-utils.ts`, `tree-utils.ts` (lan trạng thái tick, chiến lược giá trị, lọc, `moveNode`), `cascader-utils.ts`.
 
 ## Date picker
 
@@ -277,7 +307,7 @@ npm run storybook:nuxt   # http://localhost:6007
 | Nhóm | Nội dung |
 |---|---|
 | `UI/*` | Toàn bộ base component trong `components/ui` (31 component; Nuxt có thêm `Form (vee-validate)`), mỗi cái gồm các variant, size và state (disabled, invalid, loading...) |
-| `Common/*` | ConfirmDialog (kể cả async và lỗi), DataTable, EmptyState, Form, PageHeader, ThemeToggle |
+| `Common/*` | Cascader, CheckboxGroup, Collapse, Combobox, ConfirmDialog (kể cả async và lỗi), DataTable, DatePicker, EmptyState, Form, PageHeader, ProgressBar, ProgressCircle, Rate, Stepper, ThemeToggle, Transfer, Tree, TreeSelect, TruncatedText |
 | `Layout/*` | AppShell: sidebar + header, đổi trang active qua `parameters` |
 
 Story nằm trong folder `stories/` riêng của mỗi template, **không** nằm trong `components/`, nên `components/ui` luôn chỉ chứa code component và copy đi dùng được ngay:
