@@ -82,3 +82,7 @@ Bảng đầy đủ các props nằm ở mục DataTable trong README gốc. V�
 - `main.css` import `shadcn/tailwind.css` để có các variant `data-open:`, `data-checked:`... mà style `nova` cần.
 - Toast: `import { toast } from 'vue-sonner'`.
 - Trong `components/`, composable và component của Nuxt được import tường minh (`import { useRoute } from '#imports'`, `import { NuxtLink } from '#components'`), để Storybook mock được qua `.storybook/mocks/`.
+
+## Dùng với AI
+
+`AGENTS.md` chứa quy tắc cho AI (Claude Code, Cursor, Copilot...). `ai/components.md` là danh mục component sinh từ code, còn MCP server `kit-components` (`ai/mcp-server.mjs`, khai báo trong `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`) cho AI tra props và code mẫu. Sau khi thêm hoặc sửa component thì chạy `npm run ai:manifest`. Chi tiết ở mục "Dùng với AI" trong README gốc.

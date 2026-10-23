@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kit-components": {
+      "command": "node",
+      "args": ["${workspaceFolder}/ai/mcp-server.mjs"]
+    }
+  }
+}

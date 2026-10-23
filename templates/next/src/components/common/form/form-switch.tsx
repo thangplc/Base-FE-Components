@@ -9,6 +9,7 @@ type FormSwitchProps<T extends FieldValues> = FormFieldBaseProps<T> & {
   disabled?: boolean
 }
 
+/** On / off field; the form value is a boolean. The label sits next to the switch. */
 export function FormSwitch<T extends FieldValues>({
   control,
   name,

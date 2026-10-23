@@ -35,6 +35,11 @@ type DataTableToolbarProps<TData> = {
   enableGrouping?: boolean
 }
 
+/**
+ * DataTable header: search, filters, Reset, Group and View menus, extra
+ * actions; bulk actions replace it while rows are selected. DataTable renders
+ * it; use it directly only around your own TanStack table.
+ */
 export function DataTableToolbar<TData>({
   table,
   searchPlaceholder,

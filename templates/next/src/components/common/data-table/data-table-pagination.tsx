@@ -26,6 +26,10 @@ type DataTablePaginationProps<TData> = {
   selectedCount?: number
 }
 
+/**
+ * DataTable footer: row (or selected) count, rows-per-page select and page
+ * buttons. DataTable renders it; use it directly only around your own TanStack table.
+ */
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 50, 100],

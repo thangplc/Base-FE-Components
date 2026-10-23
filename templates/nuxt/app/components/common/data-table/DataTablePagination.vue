@@ -16,6 +16,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+/**
+ * DataTable footer: row (or selected) count, rows-per-page select and page
+ * buttons. DataTable renders it; use it directly only around your own TanStack table.
+ */
 const props = withDefaults(defineProps<{
   table: Table<TData>
   pageSizeOptions?: number[]

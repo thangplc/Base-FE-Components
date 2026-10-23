@@ -5,7 +5,10 @@ import { useId } from 'vue'
 import { Input } from '@/components/ui/input'
 import FormFieldLayout from './FormFieldLayout.vue'
 
-// Extra attrs (type, placeholder, autocomplete...) go to the <Input>.
+/**
+ * Text input field: label, description and error built in. Other attrs
+ * (type, placeholder, autocomplete, maxlength for the counter...) go to the Input.
+ */
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{

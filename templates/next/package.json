@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "ai:manifest": "node ai/build-manifest.mjs",
+    "ai:check": "node ai/build-manifest.mjs --check"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.2",
@@ -42,6 +44,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "react-docgen-typescript": "^2.4.0",
     "storybook": "^10.6.3",
     "tailwindcss": "^4",
     "typescript": "^5",

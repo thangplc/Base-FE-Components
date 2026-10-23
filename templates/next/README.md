@@ -74,3 +74,7 @@ Bảng đầy đủ các props nằm ở mục DataTable trong README gốc. Lư
 - `src/styles/tokens.css` được sinh tự động từ `packages/tokens` của monorepo. Khi đã tách template ra project riêng thì cứ sửa trực tiếp file này.
 - `next.config.ts` bật `cacheComponents`. Component client đọc giá trị không ổn định khi render (như TanStack Table) phải nằm trong `<Suspense>`. `DataTable` đã tự bọc sẵn.
 - Toast: `import { toast } from "sonner"`. Provider gồm theme, tooltip và toaster, nằm ở `src/components/providers.tsx`.
+
+## Dùng với AI
+
+`AGENTS.md` chứa quy tắc cho AI (Claude Code, Cursor, Copilot...). `ai/components.md` là danh mục component sinh từ code, còn MCP server `kit-components` (`ai/mcp-server.mjs`, khai báo trong `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`) cho AI tra props và code mẫu. Sau khi thêm hoặc sửa component thì chạy `npm run ai:manifest`. Chi tiết ở mục "Dùng với AI" trong README gốc.

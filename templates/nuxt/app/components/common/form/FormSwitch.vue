@@ -5,6 +5,7 @@ import { useId } from 'vue'
 import { Switch } from '@/components/ui/switch'
 import FormFieldLayout from './FormFieldLayout.vue'
 
+/** On / off field; the form value is a boolean. The label sits next to the switch. */
 const props = defineProps<{
   name: string
   label?: string

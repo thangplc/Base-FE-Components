@@ -13,6 +13,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 
+/**
+ * Asks before a destructive or important action (on the shadcn AlertDialog).
+ * Open it from the `#trigger` slot, or control it with `v-model:open`.
+ * `on-confirm` may be async: a spinner shows until it settles.
+ */
 const props = withDefaults(defineProps<{
   title: string
   description?: string

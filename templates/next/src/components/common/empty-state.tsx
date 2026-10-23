@@ -19,6 +19,7 @@ type EmptyStateProps = {
   className?: string
 }
 
+/** Placeholder for an empty list or page: icon, title, description and actions. Fits `DataTable`'s `emptyState`. */
 export function EmptyState({
   title,
   description,
