@@ -2,9 +2,10 @@
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import AppHeader from './AppHeader.vue'
 import AppSidebar from './AppSidebar.vue'
+
+/** Sidebar + sticky header + content area. Used by layouts/default.vue. */
 </script>
 
-<!-- Sidebar + sticky header + content area. Used by layouts/default.vue. -->
 <template>
   <SidebarProvider>
     <AppSidebar />

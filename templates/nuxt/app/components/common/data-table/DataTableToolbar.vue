@@ -22,6 +22,11 @@ import {
 } from '@/components/ui/input-group'
 import DataTableFilterControl from './DataTableFilter.vue'
 
+/**
+ * DataTable header: search, filters, Reset, Group and View menus, extra
+ * actions; bulk actions replace it while rows are selected. DataTable renders
+ * it; use it directly only around your own TanStack table.
+ */
 const props = withDefaults(defineProps<{
   table: Table<TData>
   searchPlaceholder?: string

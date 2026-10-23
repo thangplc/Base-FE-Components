@@ -16,6 +16,10 @@ import {
 } from '@/components/ui/sidebar'
 import { siteConfig } from '@/config/site'
 
+/**
+ * Sidebar built from `siteConfig` (config/site.ts): app name, nav groups,
+ * active item from the URL; collapses to icons. Part of AppShell.
+ */
 const route = useRoute()
 </script>
 

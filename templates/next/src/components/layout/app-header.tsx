@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { siteConfig } from "@/config/site"
 
+/** Sticky top bar: sidebar toggle, current page title from `siteConfig.nav`, theme toggle. Part of AppShell. */
 export function AppHeader() {
   const pathname = usePathname()
   const current = siteConfig.nav

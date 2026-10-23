@@ -10,6 +10,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 
+/** Placeholder for an empty list or page: title, description, `#icon` and `#action` slots. Fits DataTable's `#empty` slot. */
 const props = defineProps<{
   title: string
   description?: string

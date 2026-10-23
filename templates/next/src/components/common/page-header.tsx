@@ -10,6 +10,7 @@ type PageHeaderProps = {
   className?: string
 }
 
+/** Page title with an optional description and right-aligned actions; stacks on small screens. */
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
     <div

@@ -2,6 +2,7 @@
 import type { HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
 
+/** Page title with an optional description and right-aligned `#actions`; stacks on small screens. */
 const props = defineProps<{
   title: string
   description?: string

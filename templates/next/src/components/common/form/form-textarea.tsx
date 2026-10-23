@@ -12,6 +12,10 @@ type FormTextareaProps<T extends FieldValues> = FormFieldBaseProps<T> &
     "name" | "value" | "defaultValue" | "onChange" | "onBlur" | "className"
   >
 
+/**
+ * Multi-line text field: label, description and error built in. Other props
+ * (rows, placeholder, maxLength for the counter...) go to the Textarea.
+ */
 export function FormTextarea<T extends FieldValues>({
   control,
   name,

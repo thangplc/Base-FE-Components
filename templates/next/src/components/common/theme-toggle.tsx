@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+/** Light / dark / system menu on an icon button (next-themes). Already in AppHeader. */
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
 

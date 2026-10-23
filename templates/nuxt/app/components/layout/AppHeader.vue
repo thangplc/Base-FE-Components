@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { siteConfig } from '@/config/site'
 
+/** Sticky top bar: sidebar toggle, current page title from `siteConfig.nav`, theme toggle. Part of AppShell. */
 const route = useRoute()
 const current = computed(() =>
   siteConfig.nav.flatMap(group => group.items).find(item => item.url === route.path),

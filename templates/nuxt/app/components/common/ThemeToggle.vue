@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+/** Light / dark / system menu on an icon button (@nuxtjs/color-mode). Already in AppHeader. */
 const colorMode = useColorMode()
 </script>
 

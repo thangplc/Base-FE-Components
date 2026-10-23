@@ -5,6 +5,10 @@ import { useId } from 'vue'
 import { Textarea } from '@/components/ui/textarea'
 import FormFieldLayout from './FormFieldLayout.vue'
 
+/**
+ * Multi-line text field: label, description and error built in. Other attrs
+ * (rows, placeholder, maxlength for the counter...) go to the Textarea.
+ */
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{

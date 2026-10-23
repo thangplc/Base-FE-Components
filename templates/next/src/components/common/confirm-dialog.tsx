@@ -33,6 +33,11 @@ type ConfirmDialogProps = {
   onConfirm: () => void | Promise<void>
 }
 
+/**
+ * Asks before a destructive or important action (on the shadcn AlertDialog).
+ * Open it from `trigger`, or control it with `open` / `onOpenChange`.
+ * `onConfirm` may be async: a spinner shows until it settles.
+ */
 export function ConfirmDialog({
   trigger,
   open: openProp,

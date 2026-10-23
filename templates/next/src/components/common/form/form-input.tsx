@@ -12,6 +12,10 @@ type FormInputProps<T extends FieldValues> = FormFieldBaseProps<T> &
     "name" | "value" | "defaultValue" | "onChange" | "onBlur" | "className"
   >
 
+/**
+ * Text input field: label, description and error built in. Other props
+ * (type, placeholder, maxLength for the counter...) go to the Input.
+ */
 export function FormInput<T extends FieldValues>({
   control,
   name,
