@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="TData">
 import type { Table } from '@tanstack/vue-table'
 import type { DataTableFilter } from './types'
-import { SearchIcon, Settings2Icon, XIcon } from '@lucide/vue'
+import { GroupIcon, SearchIcon, Settings2Icon, XIcon } from '@lucide/vue'
 import { watchDebounced } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -29,9 +30,12 @@ const props = withDefaults(defineProps<{
   enableColumnVisibility?: boolean
   /** Show the bulk-actions bar instead of the filters while rows are selected. */
   hasBulkActions?: boolean
+  /** "Group by" menu for the groupable columns. */
+  enableGrouping?: boolean
 }>(), {
   searchDebounceMs: 300,
   enableColumnVisibility: true,
+  enableGrouping: false,
 })
 
 defineSlots<{
@@ -43,9 +47,15 @@ const selectedRows = computed(() => props.table.getSelectedRowModel().rows.map(r
 const isFiltered = computed(() =>
   props.table.getState().columnFilters.length > 0 || Boolean(props.table.getState().globalFilter),
 )
+// Leaf columns, so the children of grouped headers are listed too.
 const hideableColumns = computed(() =>
-  props.table.getAllColumns().filter(column => column.getCanHide() && column.accessorFn !== undefined),
+  props.table.getAllLeafColumns().filter(column => column.getCanHide() && column.accessorFn !== undefined),
 )
+const groupableColumns = computed(() => props.table.getAllLeafColumns().filter(column => column.getCanGroup()))
+const grouping = computed(() => props.table.getState().grouping)
+function columnLabel(column: (typeof hideableColumns.value)[number]) {
+  return column.columnDef.meta?.label ?? (typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id)
+}
 
 // Search box: local text, applied to the table after a debounce.
 const applied = computed(() => (props.table.getState().globalFilter as string | undefined) ?? '')
@@ -106,6 +116,34 @@ const clearSelection = () => props.table.resetRowSelection()
       <XIcon data-icon="inline-end" />
     </Button>
     <div class="ml-auto flex items-center gap-2">
+      <DropdownMenu v-if="enableGrouping && groupableColumns.length">
+        <DropdownMenuTrigger as-child>
+          <Button variant="outline">
+            <GroupIcon data-icon="inline-start" />
+            Group{{ grouping.length ? ` (${grouping.length})` : '' }}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="w-48">
+          <DropdownMenuLabel>Group by (in click order)</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            v-for="column in groupableColumns"
+            :key="column.id"
+            :model-value="column.getIsGrouped()"
+            @update:model-value="() => column.toggleGrouping()"
+            @select="(event: Event) => event.preventDefault()"
+          >
+            {{ columnLabel(column) }}
+            <span v-if="column.getIsGrouped()" class="ml-auto text-xs text-muted-foreground">{{ column.getGroupedIndex() + 1 }}</span>
+          </DropdownMenuCheckboxItem>
+          <template v-if="grouping.length">
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @select="table.resetGrouping(true)">
+              Clear grouping
+            </DropdownMenuItem>
+          </template>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <DropdownMenu v-if="enableColumnVisibility && hideableColumns.length">
         <DropdownMenuTrigger as-child>
           <Button variant="outline">
@@ -123,7 +161,7 @@ const clearSelection = () => props.table.resetRowSelection()
             @update:model-value="(value: boolean | 'indeterminate') => column.toggleVisibility(value === true)"
             @select="(event: Event) => event.preventDefault()"
           >
-            {{ column.columnDef.meta?.label ?? (typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id) }}
+            {{ columnLabel(column) }}
           </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>

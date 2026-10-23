@@ -2,13 +2,14 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import type { Table } from "@tanstack/react-table"
-import { SearchIcon, Settings2Icon, XIcon } from "lucide-react"
+import { GroupIcon, SearchIcon, Settings2Icon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -30,6 +31,8 @@ type DataTableToolbarProps<TData> = {
   actions?: ReactNode
   /** Rendered instead of the filters while rows are selected. */
   bulkActions?: (rows: TData[], helpers: { clear: () => void }) => ReactNode
+  /** "Group by" menu for the groupable columns. */
+  enableGrouping?: boolean
 }
 
 export function DataTableToolbar<TData>({
@@ -40,6 +43,7 @@ export function DataTableToolbar<TData>({
   enableColumnVisibility = true,
   actions,
   bulkActions,
+  enableGrouping = false,
 }: DataTableToolbarProps<TData>) {
   "use no memo" // reads live TanStack table state
 
@@ -62,9 +66,15 @@ export function DataTableToolbar<TData>({
     )
   }
 
+  // Leaf columns, so the children of grouped headers are listed too.
   const hideableColumns = table
-    .getAllColumns()
+    .getAllLeafColumns()
     .filter((column) => column.getCanHide() && column.accessorFn !== undefined)
+  const groupableColumns = table.getAllLeafColumns().filter((column) => column.getCanGroup())
+  const grouping = table.getState().grouping
+  const columnLabel = (column: (typeof hideableColumns)[number]) =>
+    column.columnDef.meta?.label ??
+    (typeof column.columnDef.header === "string" ? column.columnDef.header : column.id)
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -88,6 +98,39 @@ export function DataTableToolbar<TData>({
         </Button>
       )}
       <div className="ml-auto flex items-center gap-2">
+        {enableGrouping && groupableColumns.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <GroupIcon data-icon="inline-start" />
+                Group{grouping.length > 0 && ` (${grouping.length})`}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Group by (in click order)</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {groupableColumns.map((column) => (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  checked={column.getIsGrouped()}
+                  onSelect={(event) => event.preventDefault()}
+                  onCheckedChange={() => column.toggleGrouping()}
+                >
+                  {columnLabel(column)}
+                  {column.getIsGrouped() && (
+                    <span className="ml-auto text-xs text-muted-foreground">{column.getGroupedIndex() + 1}</span>
+                  )}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {grouping.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => table.resetGrouping(true)}>Clear grouping</DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         {enableColumnVisibility && hideableColumns.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -106,8 +149,7 @@ export function DataTableToolbar<TData>({
                   onSelect={(event) => event.preventDefault()}
                   onCheckedChange={(value) => column.toggleVisibility(!!value)}
                 >
-                  {column.columnDef.meta?.label ??
-                    (typeof column.columnDef.header === "string" ? column.columnDef.header : column.id)}
+                  {columnLabel(column)}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>

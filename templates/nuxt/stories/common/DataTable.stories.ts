@@ -4,7 +4,7 @@ import type { ConcreteComponent } from 'vue'
 import type { RowAction } from '@/components/common/data-table/types'
 import type { Payment } from '../_data/payments'
 import { CopyIcon, DownloadIcon, PencilIcon, PlusIcon, SearchXIcon, Trash2Icon } from '@lucide/vue'
-import { ref, watch } from 'vue'
+import { h, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import DataTable from '@/components/common/data-table/DataTable.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -296,4 +296,142 @@ export const ServerSide: Story = {
       />
     `,
   }),
+}
+
+/**
+ * `select-all-mode="all"`: the header checkbox selects every filtered row,
+ * not just the page. Narrow the window: the checkbox column stays pinned
+ * on the left (`selection-column-pinned`, default) while the rest scrolls.
+ */
+export const SelectAllFiltered: Story = {
+  render: () => ({
+    components: { DataTable },
+    setup: () => ({ paymentColumns, payments, paymentFilters, rowActions }),
+    template: `
+      <DataTable
+        :columns="paymentColumns"
+        :data="payments"
+        :get-row-id="row => row.id"
+        search-placeholder="Search payments..."
+        enable-row-selection
+        select-all-mode="all"
+        :filters="paymentFilters"
+        :max-body-height="360"
+        :row-actions="rowActions"
+      >
+        <template #bulk-actions="{ rows }">
+          <span class="text-sm text-muted-foreground">across all pages: {{ rows.length }}</span>
+        </template>
+      </DataTable>
+    `,
+  }),
+}
+
+/** `selection-type="radio"`: one row at a time. */
+export const RadioSelection: Story = {
+  args: { enableRowSelection: true, selectionType: 'radio', pageSize: 5 },
+}
+
+/** `v-model:row-selection` (ids from get-row-id): kept across pages, set from outside. */
+export const ControlledSelection: Story = {
+  render: () => ({
+    components: { DataTable, Button },
+    setup: () => ({
+      paymentColumns,
+      payments,
+      ids: ref<string[]>(['PAY-0002', 'PAY-0015']),
+      paid: payments.filter(p => p.status === 'paid').map(p => p.id),
+    }),
+    template: `
+      <div class="flex flex-col gap-3">
+        <DataTable
+          v-model:row-selection="ids"
+          :columns="paymentColumns"
+          :data="payments"
+          :get-row-id="row => row.id"
+          enable-row-selection
+          :page-size="5"
+        />
+        <div class="flex items-center gap-2">
+          <Button size="sm" variant="outline" @click="ids = paid">Select all paid</Button>
+          <code class="text-xs text-muted-foreground">{{ JSON.stringify(ids) }}</code>
+        </div>
+      </div>
+    `,
+  }),
+}
+
+const [invoice, customer, email, status, method, amount, created] = paymentColumns as [
+  ColumnDef<Payment>, ColumnDef<Payment>, ColumnDef<Payment>, ColumnDef<Payment>,
+  ColumnDef<Payment>, ColumnDef<Payment>, ColumnDef<Payment>,
+]
+
+const groupedHeaderColumns: ColumnDef<Payment>[] = [
+  invoice,
+  { id: 'customerGroup', header: 'Customer', columns: [customer, email] },
+  { id: 'paymentGroup', header: 'Payment', columns: [status, { id: 'details', header: 'Details', columns: [method, amount] }] },
+  created,
+]
+
+/**
+ * Group column headers: nest `columns` in a column def (here two levels).
+ * Columns without a group span the header rows; `bordered` adds vertical
+ * dividers. Works with the sticky header too.
+ */
+export const GroupedHeaders: Story = {
+  args: { columns: groupedHeaderColumns, bordered: true, enableRowSelection: true, maxBodyHeight: 360 },
+}
+
+const groupingColumns: ColumnDef<Payment>[] = paymentColumns.map(column =>
+  'accessorKey' in column && column.accessorKey === 'amount'
+    ? {
+        ...column,
+        aggregationFn: 'sum',
+        aggregatedCell: ({ getValue }) => h('span', { class: 'font-medium tabular-nums' }, `$${(getValue() as number).toFixed(2)}`),
+      }
+    : column,
+)
+
+/**
+ * Group rows: `default-grouping` ['status'], a +/− per group with the row
+ * count, and `aggregationFn: 'sum'` on Amount for a subtotal. The "Group"
+ * menu (enable-grouping) adds or removes levels; ticking a group selects its rows.
+ */
+export const Grouping: Story = {
+  args: { columns: groupingColumns, defaultGrouping: ['status'], enableGrouping: true, enableRowSelection: true, pageSize: 20 },
+}
+
+/** Two levels (status → method), groups start collapsed, and pages count top-level groups. */
+export const GroupingNested: Story = {
+  args: {
+    columns: groupingColumns,
+    defaultGrouping: ['status', 'method'],
+    defaultExpanded: false,
+    paginateGroups: true,
+    enableGrouping: true,
+    pageSize: 2,
+  },
+}
+
+/**
+ * `meta.mergeRows`: equal values in a row run share one cell (rowSpan),
+ * Method nested inside Status. Sort by the merged columns first.
+ */
+export const MergedCells: Story = {
+  args: {
+    columns: [
+      { ...status, meta: { ...status.meta, mergeRows: true } },
+      { ...method, meta: { ...method.meta, mergeRows: true } },
+      invoice,
+      customer,
+      amount,
+    ],
+    // Methods spread over every status, so Method runs nest inside Status runs.
+    data: payments
+      .map((p, i) => ({ ...p, method: (['card', 'bank', 'paypal'] as const)[Math.floor(i / 2) % 3]! }))
+      .sort((a, b) => a.status.localeCompare(b.status) || a.method.localeCompare(b.method)),
+    bordered: true,
+    pageSize: 20,
+    searchPlaceholder: undefined,
+  },
 }

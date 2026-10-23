@@ -22,19 +22,25 @@ type DataTablePaginationProps<TData> = {
   pageSizeOptions?: number[]
   /** Show "n of total selected" instead of the row count. */
   showSelectedCount?: boolean
+  /** Selected rows (default: the keys of the selection state). */
+  selectedCount?: number
 }
 
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 50, 100],
   showSelectedCount = false,
+  selectedCount,
 }: DataTablePaginationProps<TData>) {
   "use no memo" // reads live TanStack table state
 
   const { pageIndex, pageSize } = table.getState().pagination
   // rowCount when paginating on the server, otherwise the filtered row count.
-  const total = table.getRowCount()
-  const selected = Object.keys(table.getState().rowSelection).length
+  // While grouped, count data rows rather than group rows.
+  const total = table.getState().grouping.length && !table.options.manualPagination
+    ? table.getFilteredRowModel().rows.length
+    : table.getRowCount()
+  const selected = selectedCount ?? Object.keys(table.getState().rowSelection).length
   // Keep a custom initial pageSize (e.g. 5) selectable.
   const sizes = [...new Set([...pageSizeOptions, pageSize])].sort((a, b) => a - b)
 

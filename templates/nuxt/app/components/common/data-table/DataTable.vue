@@ -1,9 +1,10 @@
 <script setup lang="ts" generic="TData, TValue">
 import type {
-  Cell,
   ColumnDef,
   ColumnFiltersState,
+  ExpandedState,
   FilterFn,
+  GroupingState,
   PaginationState,
   Row,
   RowSelectionState,
@@ -17,25 +18,21 @@ import {
   FlexRender,
   functionalUpdate,
   getCoreRowModel,
+  getExpandedRowModel,
   getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
+  getGroupedRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
 import { computed, ref, watch } from 'vue'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import TruncatedText from '@/components/common/TruncatedText.vue'
+import { TableBody, TableHeader } from '@/components/ui/table'
 import { cn, valueUpdater } from '@/lib/utils'
+import DataTableBodyRows from './DataTableBodyRows.vue'
+import DataTableHeaderRows from './DataTableHeaderRows.vue'
 import DataTablePagination from './DataTablePagination.vue'
 import { columnWidths } from './column-widths'
 import DataTableToolbar from './DataTableToolbar.vue'
@@ -56,7 +53,7 @@ const props = withDefaults(defineProps<{
   // Data
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  /** Stable row id (e.g. `row => row.id`); needed for row selection across pages. */
+  /** Stable row id (e.g. `row => row.id`); needed for row selection across pages and `v-model:row-selection`. */
   getRowId?: (row: TData, index: number) => string
   /** Shows skeleton rows in the body while keeping the header. */
   isLoading?: boolean
@@ -102,6 +99,8 @@ const props = withDefaults(defineProps<{
   actionsColumnPinned?: boolean
 
   // Layout
+  /** Vertical borders between cells (reads better with grouped headers and merged rows). */
+  bordered?: boolean
   /** Body scrolls inside this height (number = px). The scrollbar stays inside the body. */
   maxBodyHeight?: number | string
   /** With `maxBodyHeight`: keep the header fixed above the scrolling body. */
@@ -121,6 +120,23 @@ const props = withDefaults(defineProps<{
   defaultColumnVisibility?: VisibilityState
   /** Adds a checkbox column. Pass a function to decide per row. */
   enableRowSelection?: boolean | ((row: TData) => boolean)
+  /** 'checkbox' (default) or 'radio' (one row at a time). */
+  selectionType?: 'checkbox' | 'radio'
+  /** Header checkbox: the current page ('page', default) or every filtered row ('all'). */
+  selectAllMode?: 'page' | 'all'
+  /** When the table scrolls horizontally, keep the checkbox column fixed on the left. */
+  selectionColumnPinned?: boolean
+
+  // Grouping (v-model:grouping)
+  defaultGrouping?: string[]
+  /** "Group by" menu in the toolbar (columns with an accessor and `enableGrouping !== false`). */
+  enableGrouping?: boolean
+  /** Groups start expanded (default true). */
+  defaultExpanded?: boolean
+  /** Paginate over top-level groups instead of every visible row. */
+  paginateGroups?: boolean
+  /** Keep grouped columns as normal columns (default: hidden, their value is in the group row). */
+  keepGroupedColumns?: boolean
 }>(), {
   isLoading: false,
   emptyState: 'No results.',
@@ -135,11 +151,19 @@ const props = withDefaults(defineProps<{
   showPagination: true,
   enableColumnVisibility: true,
   enableRowSelection: false,
+  selectionType: 'checkbox',
+  selectAllMode: 'page',
+  selectionColumnPinned: true,
+  bordered: false,
+  enableGrouping: false,
+  defaultExpanded: true,
+  paginateGroups: false,
+  keepGroupedColumns: false,
 })
 
 const emit = defineEmits<{
-  /** Selected rows (originals) after every selection change. */
-  'selection-change': [rows: TData[]]
+  /** Selected rows (those loaded) and the ids of every selected row, after each change. */
+  'selection-change': [rows: TData[], ids: string[]]
 }>()
 
 const slots = defineSlots<{
@@ -149,6 +173,8 @@ const slots = defineSlots<{
   'bulk-actions'?: (props: { rows: TData[], clear: () => void }) => unknown
   /** Shown when there are no rows. */
   'empty'?: () => unknown
+  /** Label of a group row (default "Column: value"); the count is added after it. */
+  'group-row'?: (props: { row: Row<TData> }) => unknown
 }>()
 
 // Each model is owned by the table unless the parent binds it with v-model.
@@ -156,13 +182,22 @@ const sorting = defineModel<SortingState>('sorting')
 const columnFilters = defineModel<ColumnFiltersState>('columnFilters')
 const search = defineModel<string>('search')
 const pagination = defineModel<PaginationState>('pagination')
+/** Selected row ids (from getRowId), kept across pages, also server-side. */
+const rowSelectionIds = defineModel<string[]>('rowSelection')
+const grouping = defineModel<GroupingState>('grouping')
 sorting.value ??= props.defaultSorting ?? []
 columnFilters.value ??= []
 search.value ??= ''
 pagination.value ??= { pageIndex: 0, pageSize: props.pageSize }
+grouping.value ??= props.defaultGrouping ?? []
 
 const columnVisibility = ref<VisibilityState>(props.defaultColumnVisibility ?? {})
-const rowSelection = ref<RowSelectionState>({})
+const innerSelection = ref<RowSelectionState>({})
+// A bound v-model:row-selection comes in as ids; TanStack wants { [id]: true }.
+const rowSelection = computed<RowSelectionState>(() =>
+  rowSelectionIds.value ? Object.fromEntries(rowSelectionIds.value.map(id => [id, true])) : innerSelection.value,
+)
+const expanded = ref<ExpandedState>(props.defaultExpanded ? true : {})
 
 // A new search or filter always starts again from the first page.
 function firstPage() {
@@ -185,7 +220,9 @@ const allColumns = computed(() => {
     ...props.data.slice(0, 50).map(row => estimateRowActionsWidth(rowActions?.(row) ?? [], props.rowActionsDisplay)),
   )
   return [
-    ...(props.enableRowSelection ? [selectionColumn<TData>()] : []),
+    ...(props.enableRowSelection
+      ? [selectionColumn<TData>(props.selectionType, props.selectAllMode, props.selectionColumnPinned)]
+      : []),
     ...withFilterFns,
     ...(rowActions
       ? [actionsColumn<TData>(rowActions, props.rowActionsDisplay, actionsSize, props.actionsColumnPinned)]
@@ -204,6 +241,8 @@ const table = useVueTable<TData>({
     get pagination() { return pagination.value },
     get columnVisibility() { return columnVisibility.value },
     get rowSelection() { return rowSelection.value },
+    get grouping() { return grouping.value },
+    get expanded() { return expanded.value },
   },
   onSortingChange: updater => (sorting.value = functionalUpdate(updater, sorting.value!)),
   onColumnFiltersChange: (updater) => {
@@ -217,17 +256,28 @@ const table = useVueTable<TData>({
   onPaginationChange: updater => (pagination.value = functionalUpdate(updater, pagination.value!)),
   onColumnVisibilityChange: updater => valueUpdater(updater, columnVisibility),
   onRowSelectionChange: (updater) => {
-    valueUpdater(updater, rowSelection)
+    const next = functionalUpdate(updater, rowSelection.value)
+    // Group rows get selected along with their children; keep row ids only.
+    const groupIds = new Set(table.getGroupedRowModel().flatRows.filter(r => r.getIsGrouped()).map(r => r.id))
+    const ids = Object.keys(next).filter(id => next[id] && !groupIds.has(id))
+    innerSelection.value = next
+    if (rowSelectionIds.value)
+      rowSelectionIds.value = ids
     const rowsById = table.getCoreRowModel().rowsById
-    emit('selection-change', Object.keys(rowSelection.value)
-      .filter(id => rowSelection.value[id])
-      .map(id => rowsById[id]?.original)
-      .filter((row): row is TData => row !== undefined))
+    emit('selection-change', ids.map(id => rowsById[id]?.original).filter((row): row is TData => row !== undefined), ids)
   },
+  onGroupingChange: (updater) => {
+    grouping.value = functionalUpdate(updater, grouping.value!)
+    firstPage()
+  },
+  onExpandedChange: updater => (expanded.value = functionalUpdate(updater, expanded.value)),
   get enableRowSelection() {
     const enable = props.enableRowSelection
-    return typeof enable === 'function' ? (row: Row<TData>) => enable(row.original) : enable
+    return typeof enable === 'function' ? (row: Row<TData>) => row.getIsGrouped() || enable(row.original) : enable
   },
+  get enableMultiRowSelection() { return props.selectionType !== 'radio' },
+  get groupedColumnMode() { return props.keepGroupedColumns ? false : 'remove' as const },
+  get paginateExpandedRows() { return !props.paginateGroups },
   get enableMultiSort() { return props.enableMultiSort },
   isMultiSortEvent: event => (event as MouseEvent).shiftKey,
   get manualSorting() { return props.manualSorting },
@@ -242,6 +292,8 @@ const table = useVueTable<TData>({
   getSortedRowModel: getSortedRowModel(),
   getFilteredRowModel: getFilteredRowModel(),
   getPaginationRowModel: getPaginationRowModel(),
+  getGroupedRowModel: getGroupedRowModel(),
+  getExpandedRowModel: getExpandedRowModel(),
   getFacetedRowModel: getFacetedRowModel(),
   getFacetedUniqueValues: getFacetedUniqueValues(),
   getFacetedMinMaxValues: getFacetedMinMaxValues(),
@@ -283,15 +335,9 @@ watch(scroller, (element, _, onCleanup) => {
 const widths = computed(() => columnWidths(visibleColumns.value, available.value))
 const tableWidth = computed(() => `${widths.value.reduce((sum, w) => sum + w, 0)}px`)
 
-/**
- * Body cell content per `meta.overflow`. 'truncate' cuts long text with an
- * ellipsis via TruncatedText, full text in the app-wide tooltip (needs a
- * bounded width: always true with `maxBodyHeight`; in the auto layout
- * columns grow to fit, unless you cap them, e.g. `max-w-60` in `meta.className`).
- */
-function overflowOf(cell: Cell<TData, unknown>) {
-  return cell.column.columnDef.meta?.overflow ?? 'truncate'
-}
+const selectedIds = computed(() => Object.keys(rowSelection.value).filter(
+  id => rowSelection.value[id] && !table.getRowModel().rowsById[id]?.getIsGrouped(),
+))
 
 function onRowClick(event: MouseEvent, row: Row<TData>) {
   if (!props.onRowClick)
@@ -312,7 +358,15 @@ function syncHeaderScroll(event: Event) {
 </script>
 
 <template>
-  <div :class="cn('group/table flex flex-col gap-4', props.class)" :data-overflow-x="overflowX || undefined">
+  <div
+    :class="cn(
+      'group/table flex flex-col gap-4',
+      // Vertical body borders; header cells get theirs in DataTableHeaderRows.
+      bordered && '[&_td:not(:last-child)]:border-r',
+      props.class,
+    )"
+    :data-overflow-x="overflowX || undefined"
+  >
     <DataTableToolbar
       :table="table"
       :search-placeholder="searchPlaceholder"
@@ -320,6 +374,7 @@ function syncHeaderScroll(event: Event) {
       :filters="filters"
       :enable-column-visibility="enableColumnVisibility"
       :has-bulk-actions="!!slots['bulk-actions']"
+      :enable-grouping="enableGrouping"
     >
       <slot name="toolbar-actions" />
       <template #bulk-actions="bulk">
@@ -339,16 +394,7 @@ function syncHeaderScroll(event: Event) {
             <col v-for="(column, i) in visibleColumns" :key="column.id" :style="{ width: `${widths[i]}px` }">
           </colgroup>
           <TableHeader>
-            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
-              <TableHead
-                v-for="header in headerGroup.headers"
-                :key="header.id"
-                :col-span="header.colSpan"
-                :class="header.column.columnDef.meta?.className"
-              >
-                <FlexRender v-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
-              </TableHead>
-            </TableRow>
+            <DataTableHeaderRows :table="table" :bordered="bordered" />
           </TableHeader>
         </table>
       </div>
@@ -358,39 +404,23 @@ function syncHeaderScroll(event: Event) {
             <col v-for="(column, i) in visibleColumns" :key="column.id" :style="{ width: `${widths[i]}px` }">
           </colgroup>
           <TableBody>
-            <template v-if="isLoading">
-              <TableRow v-for="i in skeletonRows" :key="i" class="hover:bg-transparent">
-                <TableCell v-for="column in visibleColumns" :key="column.id">
-                  <Skeleton class="h-5 w-full" />
-                </TableCell>
-              </TableRow>
-            </template>
-            <template v-else-if="table.getRowModel().rows.length">
-              <TableRow
-                v-for="row in table.getRowModel().rows"
-                :key="row.id"
-                :data-state="row.getIsSelected() ? 'selected' : undefined"
-                :class="cn('group/row', props.onRowClick && 'cursor-pointer')"
-                @click="onRowClick($event, row)"
-              >
-                <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="cell.column.columnDef.meta?.className">
-                  <FlexRender v-if="overflowOf(cell) === 'visible'" :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  <TruncatedText v-else-if="overflowOf(cell) === 'truncate'">
-                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  </TruncatedText>
-                  <div v-else class="break-words whitespace-normal">
-                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            </template>
-            <TableRow v-else class="hover:bg-transparent">
-              <TableCell :colspan="visibleColumns.length" class="h-24 text-center text-muted-foreground">
+            <DataTableBodyRows
+              :table="table"
+              :is-loading="isLoading"
+              :skeleton-rows="skeletonRows"
+              :clickable="!!props.onRowClick"
+              :empty-state="emptyState"
+              @row-click="onRowClick"
+            >
+              <template #empty>
                 <slot name="empty">
                   {{ emptyState }}
                 </slot>
-              </TableCell>
-            </TableRow>
+              </template>
+              <template v-if="slots['group-row']" #group-row="{ row }">
+                <slot name="group-row" :row="row" />
+              </template>
+            </DataTableBodyRows>
           </TableBody>
         </table>
       </div>
@@ -404,51 +434,26 @@ function syncHeaderScroll(event: Event) {
       >
         <table data-slot="table" class="w-full caption-bottom text-sm">
           <TableHeader>
-            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="hover:bg-transparent">
-              <TableHead
-                v-for="header in headerGroup.headers"
-                :key="header.id"
-                :col-span="header.colSpan"
-                :class="header.column.columnDef.meta?.className"
-              >
-                <FlexRender v-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
-              </TableHead>
-            </TableRow>
+            <DataTableHeaderRows :table="table" :bordered="bordered" />
           </TableHeader>
           <TableBody>
-            <template v-if="isLoading">
-              <TableRow v-for="i in skeletonRows" :key="i" class="hover:bg-transparent">
-                <TableCell v-for="column in visibleColumns" :key="column.id">
-                  <Skeleton class="h-5 w-full" />
-                </TableCell>
-              </TableRow>
-            </template>
-            <template v-else-if="table.getRowModel().rows.length">
-              <TableRow
-                v-for="row in table.getRowModel().rows"
-                :key="row.id"
-                :data-state="row.getIsSelected() ? 'selected' : undefined"
-                :class="cn('group/row', props.onRowClick && 'cursor-pointer')"
-                @click="onRowClick($event, row)"
-              >
-                <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="cell.column.columnDef.meta?.className">
-                  <FlexRender v-if="overflowOf(cell) === 'visible'" :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  <TruncatedText v-else-if="overflowOf(cell) === 'truncate'">
-                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  </TruncatedText>
-                  <div v-else class="break-words whitespace-normal">
-                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            </template>
-            <TableRow v-else class="hover:bg-transparent">
-              <TableCell :colspan="visibleColumns.length" class="h-24 text-center text-muted-foreground">
+            <DataTableBodyRows
+              :table="table"
+              :is-loading="isLoading"
+              :skeleton-rows="skeletonRows"
+              :clickable="!!props.onRowClick"
+              :empty-state="emptyState"
+              @row-click="onRowClick"
+            >
+              <template #empty>
                 <slot name="empty">
                   {{ emptyState }}
                 </slot>
-              </TableCell>
-            </TableRow>
+              </template>
+              <template v-if="slots['group-row']" #group-row="{ row }">
+                <slot name="group-row" :row="row" />
+              </template>
+            </DataTableBodyRows>
           </TableBody>
         </table>
       </div>
@@ -459,6 +464,7 @@ function syncHeaderScroll(event: Event) {
       :table="table"
       :page-size-options="pageSizeOptions"
       :show-selected-count="!!enableRowSelection"
+      :selected-count="selectedIds.length"
     />
   </div>
 </template>

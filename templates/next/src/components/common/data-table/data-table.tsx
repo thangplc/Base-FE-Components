@@ -5,16 +5,21 @@ import {
   flexRender,
   functionalUpdate,
   getCoreRowModel,
+  getExpandedRowModel,
   getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
+  getGroupedRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
+  type ExpandedState,
   type FilterFn,
+  type GroupingState,
+  type Header,
   type PaginationState,
   type Row,
   type RowSelectionState,
@@ -24,6 +29,8 @@ import {
   type Updater,
   type VisibilityState,
 } from "@tanstack/react-table"
+
+import { MinusIcon, PlusIcon } from "lucide-react"
 
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -47,7 +54,7 @@ export type DataTableProps<TData, TValue = unknown> = {
   // Data
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  /** Stable row id (e.g. `(row) => row.id`); needed for row selection across pages. */
+  /** Stable row id (e.g. `(row) => row.id`); needed for row selection across pages and `rowSelection`. */
   getRowId?: (row: TData, index: number) => string
   /** Shows skeleton rows in the body while keeping the header. */
   isLoading?: boolean
@@ -100,6 +107,8 @@ export type DataTableProps<TData, TValue = unknown> = {
   actionsColumnPinned?: boolean
 
   // Layout
+  /** Vertical borders between cells (reads better with grouped headers and merged rows). */
+  bordered?: boolean
   /** Body scrolls inside this height (number = px). The scrollbar stays inside the body. */
   maxBodyHeight?: number | string
   /** With `maxBodyHeight`: keep the header fixed above the scrolling body. */
@@ -123,9 +132,34 @@ export type DataTableProps<TData, TValue = unknown> = {
   defaultColumnVisibility?: VisibilityState
   /** Adds a checkbox column. Pass a function to decide per row. */
   enableRowSelection?: boolean | ((row: TData) => boolean)
-  onRowSelectionChange?: (rows: TData[]) => void
+  /** "checkbox" (default) or "radio" (one row at a time). */
+  selectionType?: "checkbox" | "radio"
+  /** Header checkbox: the current page ("page", default) or every filtered row ("all"). */
+  selectAllMode?: "page" | "all"
+  /** When the table scrolls horizontally, keep the checkbox column fixed on the left. */
+  selectionColumnPinned?: boolean
+  /** Controlled selection: row ids from `getRowId` (kept across pages, also server-side). */
+  rowSelection?: string[]
+  /** Selected rows (those loaded) and the ids of every selected row. */
+  onRowSelectionChange?: (rows: TData[], ids: string[]) => void
   /** Toolbar content while rows are selected (delete, export...). */
   bulkActions?: (rows: TData[], helpers: { clear: () => void }) => ReactNode
+
+  // Grouping
+  /** Group rows by these column ids, nested in this order. */
+  grouping?: string[]
+  defaultGrouping?: string[]
+  onGroupingChange?: (grouping: string[]) => void
+  /** "Group by" menu in the toolbar (columns with an accessor and `enableGrouping !== false`). */
+  enableGrouping?: boolean
+  /** Groups start expanded (default true). */
+  defaultExpanded?: boolean
+  /** Paginate over top-level groups instead of every visible row. */
+  paginateGroups?: boolean
+  /** Label of a group row (default "Column: value"); the count is added after it. */
+  renderGroupRow?: (row: Row<TData>) => ReactNode
+  /** Keep grouped columns as normal columns (default: hidden, their value is in the group row). */
+  keepGroupedColumns?: boolean
 }
 
 /**
@@ -198,8 +232,21 @@ function DataTableContent<TData, TValue>({
   enableColumnVisibility = true,
   defaultColumnVisibility,
   enableRowSelection,
+  selectionType = "checkbox",
+  selectAllMode = "page",
+  selectionColumnPinned = true,
+  rowSelection: rowSelectionProp,
   onRowSelectionChange,
   bulkActions,
+  bordered = false,
+  grouping: groupingProp,
+  defaultGrouping,
+  onGroupingChange,
+  enableGrouping = false,
+  defaultExpanded = true,
+  paginateGroups = false,
+  renderGroupRow,
+  keepGroupedColumns = false,
 }: DataTableProps<TData, TValue>) {
   "use no memo" // TanStack Table is not compatible with React Compiler memoization
 
@@ -215,7 +262,19 @@ function DataTableContent<TData, TValue>({
     pageSize,
   })
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(defaultColumnVisibility ?? {})
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [innerSelection, setInnerSelection] = useState<RowSelectionState>({})
+  // Controlled selection comes in as ids; TanStack wants { [id]: true }.
+  const rowSelection = useMemo(
+    () => (rowSelectionProp ? Object.fromEntries(rowSelectionProp.map((id) => [id, true])) : innerSelection),
+    [rowSelectionProp, innerSelection]
+  )
+  const [groupingState, setGroupingState] = useControllableState<GroupingState>(
+    groupingProp,
+    onGroupingChange,
+    defaultGrouping ?? []
+  )
+  const [expanded, setExpanded] = useState<ExpandedState>(defaultExpanded ? true : {})
+  const grouped = groupingState.length > 0
 
   // A new search or filter always starts again from the first page.
   const firstPage = () => setPagination((old) => (old.pageIndex === 0 ? old : { ...old, pageIndex: 0 }))
@@ -225,6 +284,10 @@ function DataTableContent<TData, TValue>({
   }
   const setGlobalFilter = (updater: Updater<string>) => {
     setGlobalFilterState(updater)
+    firstPage()
+  }
+  const setGrouping = (updater: Updater<GroupingState>) => {
+    setGroupingState(updater)
     firstPage()
   }
 
@@ -244,7 +307,9 @@ function DataTableContent<TData, TValue>({
         ...data.slice(0, 50).map((row) => estimateRowActionsWidth(rowActions?.(row) ?? [], rowActionsDisplay))
       )
     return [
-      ...(enableRowSelection ? [selectionColumn<TData, TValue>()] : []),
+      ...(enableRowSelection
+        ? [selectionColumn<TData, TValue>(selectionType, selectAllMode, selectionColumnPinned)]
+        : []),
       ...withFilterFns,
       ...(rowActions
         ? [actionsColumn<TData, TValue>(rowActions, rowActionsDisplay, actionsSize, actionsColumnPinned)]
@@ -255,6 +320,9 @@ function DataTableContent<TData, TValue>({
     data,
     filters,
     enableRowSelection,
+    selectionType,
+    selectAllMode,
+    selectionColumnPinned,
     rowActions,
     rowActionsDisplay,
     actionsColumnSize,
@@ -266,7 +334,16 @@ function DataTableContent<TData, TValue>({
     data,
     columns: allColumns,
     getRowId,
-    state: { sorting, columnFilters, globalFilter, pagination, columnVisibility, rowSelection },
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      pagination,
+      columnVisibility,
+      rowSelection,
+      grouping: groupingState,
+      expanded,
+    },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
@@ -274,13 +351,21 @@ function DataTableContent<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: (updater) => {
       const next = functionalUpdate(updater, rowSelection)
-      setRowSelection(next)
-      onRowSelectionChange?.(selectedOriginals(table, next))
+      // Group rows get selected along with their children; keep row ids only.
+      const groupIds = new Set(table.getGroupedRowModel().flatRows.filter((r) => r.getIsGrouped()).map((r) => r.id))
+      const ids = Object.keys(next).filter((id) => next[id] && !groupIds.has(id))
+      if (!rowSelectionProp) setInnerSelection(next)
+      onRowSelectionChange?.(selectedOriginals(table, ids), ids)
     },
+    onGroupingChange: setGrouping,
+    onExpandedChange: setExpanded,
     enableRowSelection:
       typeof enableRowSelection === "function"
-        ? (row) => enableRowSelection(row.original)
+        ? (row) => row.getIsGrouped() || enableRowSelection(row.original)
         : Boolean(enableRowSelection),
+    enableMultiRowSelection: selectionType !== "radio",
+    groupedColumnMode: keepGroupedColumns ? false : "remove",
+    paginateExpandedRows: !paginateGroups,
     enableMultiSort,
     isMultiSortEvent: (event) => (event as MouseEvent).shiftKey,
     manualSorting,
@@ -293,6 +378,8 @@ function DataTableContent<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
@@ -325,19 +412,10 @@ function DataTableContent<TData, TValue>({
     onRowClick(row.original)
   }
 
-  const headerRows = table.getHeaderGroups().map((headerGroup) => (
-    <TableRow key={headerGroup.id} className="hover:bg-transparent">
-      {headerGroup.headers.map((header) => (
-        <TableHead
-          key={header.id}
-          colSpan={header.colSpan}
-          className={header.column.columnDef.meta?.className}
-        >
-          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-        </TableHead>
-      ))}
-    </TableRow>
-  ))
+  const headerRows = renderHeaderRows(table, bordered)
+  const spans = grouped ? undefined : mergedRowSpans(rows, visibleColumns)
+  // The first data column carries the group label / indent while grouping.
+  const labelColumnId = visibleColumns.find((column) => column.id !== "select")?.id
 
   const bodyRows = isLoading ? (
     Array.from({ length: Math.min(pagination.pageSize, 10) }, (_, i) => (
@@ -354,16 +432,37 @@ function DataTableContent<TData, TValue>({
       <TableRow
         key={row.id}
         data-state={row.getIsSelected() ? "selected" : undefined}
-        className={cn("group/row", onRowClick && "cursor-pointer")}
-        onClick={onRowClick ? (event) => handleRowClick(event, row) : undefined}
+        data-group={row.getIsGrouped() || undefined}
+        className={cn("group/row", row.getIsGrouped() && "bg-muted/40 font-medium", onRowClick && !row.getIsGrouped() && "cursor-pointer")}
+        onClick={onRowClick && !row.getIsGrouped() ? (event) => handleRowClick(event, row) : undefined}
       >
-        {row.getVisibleCells().map((cell) => (
-          <TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
-            <CellContent overflow={cell.column.columnDef.meta?.overflow}>
-              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </CellContent>
-          </TableCell>
-        ))}
+        {row.getVisibleCells().map((cell) => {
+          const meta = cell.column.columnDef.meta
+          const span = spans?.get(`${row.id}:${cell.column.id}`)
+          if (span === 0) return null
+          const isLabel = grouped && cell.column.id === labelColumnId
+          let content: ReactNode
+          if (row.getIsGrouped() && cell.column.id !== "select") {
+            content = isLabel ? (
+              <GroupLabel row={row} table={table} renderGroupRow={renderGroupRow} />
+            ) : cell.getIsAggregated() ? (
+              flexRender(cell.column.columnDef.aggregatedCell ?? cell.column.columnDef.cell, cell.getContext())
+            ) : null
+          } else {
+            content = flexRender(cell.column.columnDef.cell, cell.getContext())
+          }
+          return (
+            <TableCell
+              key={cell.id}
+              rowSpan={span && span > 1 ? span : undefined}
+              className={cn(meta?.className, meta?.mergeRows && "border-r align-middle")}
+              // Leaf rows under groups are indented like their group label.
+              style={isLabel && !row.getIsGrouped() ? { paddingLeft: `${0.5 + row.depth * 1.5 + 1.75}rem` } : undefined}
+            >
+              {row.getIsGrouped() && isLabel ? content : <CellContent overflow={meta?.overflow}>{content}</CellContent>}
+            </TableCell>
+          )
+        })}
       </TableRow>
     ))
   ) : (
@@ -374,9 +473,19 @@ function DataTableContent<TData, TValue>({
     </TableRow>
   )
 
+  const selectedIds = Object.keys(rowSelection).filter(
+    (id) => rowSelection[id] && !table.getRowModel().rowsById[id]?.getIsGrouped()
+  )
+
   return (
     <div
-      className={cn("group/table flex flex-col gap-4", className)}
+      className={cn(
+        "group/table flex flex-col gap-4",
+        // Vertical body borders; header cells get theirs in renderHeaderRows
+        // (in a multi-row header the last cell of a row isn't always the last column).
+        bordered && "[&_td:not(:last-child)]:border-r",
+        className
+      )}
       data-overflow-x={overflowX || undefined}
     >
       <DataTableToolbar
@@ -387,6 +496,7 @@ function DataTableContent<TData, TValue>({
         enableColumnVisibility={enableColumnVisibility}
         actions={toolbarActions}
         bulkActions={bulkActions}
+        enableGrouping={enableGrouping}
       />
       {maxBodyHeight === undefined ? (
         <div className="overflow-hidden rounded-lg border">
@@ -418,6 +528,7 @@ function DataTableContent<TData, TValue>({
           table={table}
           pageSizeOptions={pageSizeOptions}
           showSelectedCount={Boolean(enableRowSelection)}
+          selectedCount={selectedIds.length}
         />
       )}
     </div>
@@ -535,40 +646,185 @@ function CellContent({
   return <div className="break-words whitespace-normal">{children}</div>
 }
 
-function selectedOriginals<TData>(table: TanstackTable<TData>, selection: RowSelectionState) {
+function selectedOriginals<TData>(table: TanstackTable<TData>, ids: string[]) {
   const rowsById = table.getCoreRowModel().rowsById
-  return Object.keys(selection)
-    .filter((id) => selection[id])
-    .map((id) => rowsById[id]?.original)
-    .filter((row): row is TData => row !== undefined)
+  return ids.map((id) => rowsById[id]?.original).filter((row): row is TData => row !== undefined)
 }
 
-function selectionColumn<TData, TValue>(): ColumnDef<TData, TValue> {
+/**
+ * Header rows for grouped column defs (`columns: [...]`): group headers
+ * span their children (colSpan, centered); a column without a group above
+ * it spans the empty rows instead of leaving holes (rowSpan).
+ */
+function renderHeaderRows<TData>(table: TanstackTable<TData>, bordered: boolean) {
+  const groups = table.getHeaderGroups()
+  const rendered = new Set<string>()
+  const lastColumnId = table.getVisibleLeafColumns().at(-1)?.id
+  return groups.map((group, depth) => (
+    <TableRow key={group.id} className="hover:bg-transparent">
+      {group.headers.map((header) => {
+        if (rendered.has(header.column.id)) return null
+        rendered.add(header.column.id)
+        // Rows further down where this column shows again (as a placeholder or for real).
+        let rowSpan = 1
+        let real: Header<TData, unknown> = header
+        for (const below of groups.slice(depth + 1)) {
+          const same = below.headers.find((h) => h.column.id === header.column.id)
+          if (!same) break
+          rowSpan++
+          if (!same.isPlaceholder) real = same
+        }
+        const isGroup = real.subHeaders.length > 0 && !real.isPlaceholder
+        const atRightEdge = header.getLeafHeaders().at(-1)?.column.id === lastColumnId
+        return (
+          <TableHead
+            key={header.id}
+            colSpan={header.colSpan}
+            rowSpan={rowSpan > 1 ? rowSpan : undefined}
+            className={cn(
+              real.column.columnDef.meta?.className,
+              isGroup && "text-center",
+              groups.length > 1 && "border-b",
+              bordered && !atRightEdge && "border-r"
+            )}
+          >
+            {real.isPlaceholder ? null : flexRender(real.column.columnDef.header, real.getContext())}
+          </TableHead>
+        )
+      })}
+    </TableRow>
+  ))
+}
+
+/** Group row label: +/− toggle (indented by depth), "Column: value" and the row count. */
+function GroupLabel<TData>({
+  row,
+  table,
+  renderGroupRow,
+}: {
+  row: Row<TData>
+  table: TanstackTable<TData>
+  renderGroupRow?: (row: Row<TData>) => ReactNode
+}) {
+  const column = row.groupingColumnId ? table.getColumn(row.groupingColumnId) : undefined
+  const header = column?.columnDef.meta?.label ?? (typeof column?.columnDef.header === "string" ? column.columnDef.header : column?.id)
+  const Icon = row.getIsExpanded() ? MinusIcon : PlusIcon
+  return (
+    <div className="flex items-center gap-2" style={{ paddingLeft: `${row.depth * 1.5}rem` }}>
+      <button
+        type="button"
+        aria-label={row.getIsExpanded() ? "Collapse group" : "Expand group"}
+        aria-expanded={row.getIsExpanded()}
+        onClick={row.getToggleExpandedHandler()}
+        className="flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input bg-background text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        <Icon className="size-3" />
+      </button>
+      <span className="truncate">
+        {renderGroupRow ? renderGroupRow(row) : `${header}: ${String(row.groupingValue ?? "—")}`}
+      </span>
+      <span className="text-xs font-normal text-muted-foreground tabular-nums">({row.getLeafRows().filter((leaf) => !leaf.getIsGrouped()).length})</span>
+    </div>
+  )
+}
+
+/**
+ * rowSpan of each body cell for columns with `meta.mergeRows`, keyed
+ * `${rowId}:${columnId}`: n on the first row of a run of equal values, 0 on
+ * the rows it covers. A merged column only merges inside the runs of the
+ * merged columns before it.
+ */
+function mergedRowSpans<TData>(rows: Row<TData>[], columns: Column<TData, unknown>[]) {
+  const merged = columns.filter((column) => column.columnDef.meta?.mergeRows)
+  if (!merged.length || !rows.length) return undefined
+  const spans = new Map<string, number>()
+  const breaks = new Set<number>([0])
+  for (const column of merged) {
+    let start = 0
+    const value = (i: number) => rows[i].getValue(column.id)
+    for (let i = 1; i <= rows.length; i++) {
+      if (i < rows.length && !breaks.has(i) && Object.is(value(i), value(start))) continue
+      spans.set(`${rows[start].id}:${column.id}`, i - start)
+      for (let j = start + 1; j < i; j++) spans.set(`${rows[j].id}:${column.id}`, 0)
+      breaks.add(i)
+      start = i
+    }
+  }
+  return spans
+}
+
+function selectionColumn<TData, TValue>(
+  type: "checkbox" | "radio",
+  selectAllMode: "page" | "all",
+  pinned: boolean
+): ColumnDef<TData, TValue> {
   return {
     id: "select",
     size: 40,
     enableSorting: false,
     enableHiding: false,
-    meta: { className: "w-10", fixedWidth: true, overflow: "visible" },
-    header: ({ table }) => (
-      <Checkbox
-        aria-label="Select all rows on this page"
-        checked={
-          table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        aria-label="Select row"
-        checked={row.getIsSelected()}
-        disabled={!row.getCanSelect()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-      />
-    ),
+    enableGrouping: false,
+    meta: { className: cn("w-10", pinned && pinnedLeftClass), fixedWidth: true, overflow: "visible" },
+    header: ({ table }) => {
+      if (type === "radio") return <span className="sr-only">Select</span>
+      const all = selectAllMode === "all"
+      return (
+        <Checkbox
+          aria-label={all ? "Select all rows" : "Select all rows on this page"}
+          checked={
+            all
+              ? table.getIsAllRowsSelected() || (table.getIsSomeRowsSelected() && "indeterminate")
+              : table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) =>
+            all ? table.toggleAllRowsSelected(!!value) : table.toggleAllPageRowsSelected(!!value)
+          }
+        />
+      )
+    },
+    cell: ({ row }) => {
+      if (type === "radio") {
+        if (row.getIsGrouped()) return null
+        return (
+          <button
+            type="button"
+            role="radio"
+            aria-label="Select row"
+            aria-checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            onClick={() => row.toggleSelected(true)}
+            className="flex size-4 items-center justify-center rounded-full border border-input outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 aria-checked:border-primary"
+          >
+            {row.getIsSelected() && <span className="size-2 rounded-full bg-primary" />}
+          </button>
+        )
+      }
+      // Group rows: checked when all children are, a dash when some are.
+      const checked = row.getIsGrouped()
+        ? row.getIsAllSubRowsSelected() || (row.getIsSomeSelected() && "indeterminate")
+        : row.getIsSelected()
+      return (
+        <Checkbox
+          aria-label={row.getIsGrouped() ? "Select group" : "Select row"}
+          checked={checked}
+          disabled={!row.getCanSelect()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+        />
+      )
+    },
   }
 }
+
+// Mirror of pinnedRightClass for the checkbox column (divider on its right).
+const pinnedLeftClass = [
+  "group-data-[overflow-x=true]/table:sticky",
+  "group-data-[overflow-x=true]/table:left-0",
+  "group-data-[overflow-x=true]/table:z-[1]",
+  "group-data-[overflow-x=true]/table:bg-background",
+  "group-data-[overflow-x=true]/table:shadow-[inset_-1px_0_0_var(--border)]",
+  "group-data-[overflow-x=true]/table:group-hover/row:bg-[color-mix(in_oklch,var(--muted)_50%,var(--background))]",
+  "group-data-[overflow-x=true]/table:group-data-[state=selected]/row:bg-muted",
+].join(" ")
 
 // Only while the table overflows horizontally (data-overflow-x on the
 // wrapper): stick to the right with a divider, in colors that match

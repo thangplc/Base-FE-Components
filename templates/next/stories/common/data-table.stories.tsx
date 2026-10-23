@@ -272,3 +272,140 @@ function ServerSideDemo() {
 export const ServerSide: Story = {
   render: () => <ServerSideDemo />,
 }
+
+/**
+ * `selectAllMode="all"`: the header checkbox selects every filtered row,
+ * not just the page. Narrow the window: the checkbox column stays pinned
+ * on the left (`selectionColumnPinned`, default) while the rest scrolls.
+ */
+export const SelectAllFiltered: Story = {
+  args: {
+    enableRowSelection: true,
+    selectAllMode: "all",
+    filters: paymentFilters,
+    maxBodyHeight: 360,
+    rowActions,
+    bulkActions: (rows) => <span className="text-sm text-muted-foreground">across all pages: {rows.length}</span>,
+  },
+}
+
+/** `selectionType="radio"`: one row at a time. */
+export const RadioSelection: Story = {
+  args: { enableRowSelection: true, selectionType: "radio", pageSize: 5 },
+}
+
+function ControlledSelectionDemo() {
+  const [ids, setIds] = useState<string[]>(["PAY-0002", "PAY-0015"])
+  return (
+    <div className="flex flex-col gap-3">
+      <DataTable
+        columns={paymentColumns}
+        data={payments}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        pageSize={5}
+        rowSelection={ids}
+        onRowSelectionChange={(_, next) => setIds(next)}
+      />
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" onClick={() => setIds(payments.filter((p) => p.status === "paid").map((p) => p.id))}>
+          Select all paid
+        </Button>
+        <code className="text-xs text-muted-foreground">{JSON.stringify(ids)}</code>
+      </div>
+    </div>
+  )
+}
+
+/** Controlled `rowSelection` (ids from getRowId): kept across pages, set from outside. */
+export const ControlledSelection: Story = { render: () => <ControlledSelectionDemo /> }
+
+const groupedHeaderColumns: ColumnDef<Payment>[] = [
+  paymentColumns[0],
+  { id: "customerGroup", header: "Customer", columns: [paymentColumns[1], paymentColumns[2]] },
+  {
+    id: "paymentGroup",
+    header: "Payment",
+    columns: [paymentColumns[3], { id: "details", header: "Details", columns: [paymentColumns[4], paymentColumns[5]] }],
+  },
+  paymentColumns[6],
+]
+
+/**
+ * Group column headers: nest `columns` in a column def (here two levels).
+ * Columns without a group span the header rows; `bordered` adds vertical
+ * dividers. Works with the sticky header too.
+ */
+export const GroupedHeaders: Story = {
+  args: {
+    columns: groupedHeaderColumns,
+    bordered: true,
+    enableRowSelection: true,
+    maxBodyHeight: 360,
+  },
+}
+
+const groupingColumns: ColumnDef<Payment>[] = paymentColumns.map((column) =>
+  "accessorKey" in column && column.accessorKey === "amount"
+    ? {
+        ...column,
+        aggregationFn: "sum",
+        aggregatedCell: ({ getValue }) => (
+          <span className="font-medium tabular-nums">${(getValue() as number).toFixed(2)}</span>
+        ),
+      }
+    : column
+)
+
+/**
+ * Group rows: `defaultGrouping={["status"]}`, a +/− per group with the
+ * row count, and `aggregationFn: "sum"` on Amount for a subtotal. The
+ * "Group" menu (enableGrouping) adds or removes levels; ticking a group
+ * selects its rows.
+ */
+export const Grouping: Story = {
+  args: {
+    columns: groupingColumns,
+    defaultGrouping: ["status"],
+    enableGrouping: true,
+    enableRowSelection: true,
+    pageSize: 20,
+  },
+}
+
+/** Two levels (status → method), groups start collapsed, and pages count top-level groups. */
+export const GroupingNested: Story = {
+  args: {
+    columns: groupingColumns,
+    defaultGrouping: ["status", "method"],
+    defaultExpanded: false,
+    paginateGroups: true,
+    enableGrouping: true,
+    pageSize: 2,
+  },
+}
+
+const mergeColumns: ColumnDef<Payment>[] = [
+  { ...paymentColumns[3], meta: { ...paymentColumns[3].meta, mergeRows: true } },
+  { ...paymentColumns[4], meta: { ...paymentColumns[4].meta, mergeRows: true } },
+  paymentColumns[0],
+  paymentColumns[1],
+  paymentColumns[5],
+]
+
+/**
+ * `meta.mergeRows`: equal values in a row run share one cell (rowSpan),
+ * Method nested inside Status. Sort by the merged columns first.
+ */
+export const MergedCells: Story = {
+  args: {
+    columns: mergeColumns,
+    // Methods spread over every status, so Method runs nest inside Status runs.
+    data: payments
+      .map((p, i) => ({ ...p, method: (["card", "bank", "paypal"] as const)[Math.floor(i / 2) % 3] }))
+      .sort((a, b) => a.status.localeCompare(b.status) || a.method.localeCompare(b.method)),
+    bordered: true,
+    pageSize: 20,
+    searchPlaceholder: undefined,
+  },
+}

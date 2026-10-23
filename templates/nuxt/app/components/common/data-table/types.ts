@@ -20,6 +20,12 @@ declare module '@tanstack/vue-table' {
      * - 'visible': rendered as is (checkbox and actions columns)
      */
     overflow?: 'truncate' | 'wrap' | 'visible'
+    /**
+     * Merge consecutive rows with the same value into one cell (rowSpan),
+     * like Excel. Several merged columns nest: a later one only merges
+     * inside the blocks of the earlier ones. Ignored while rows are grouped.
+     */
+    mergeRows?: boolean
   }
 }
 
