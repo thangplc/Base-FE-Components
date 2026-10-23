@@ -12,8 +12,13 @@ Bộ starter kit cá nhân: **base components dựng sẵn** cho React (Next.js)
 ```
 .
 ├── packages/tokens/tokens.css   ← NGUỒN DUY NHẤT của design tokens (màu, radius, dark mode)
+├── packages/ai/                 ← NGUỒN của bộ công cụ AI (manifest + MCP server)
 ├── scripts/sync-tokens.mjs      ← copy tokens.css vào từng template
+├── scripts/sync-ai.mjs          ← copy packages/ai vào từng template + sinh manifest
+├── AGENTS.md                    ← quy tắc cho AI khi phát triển chính kit này
 └── templates/
+    ├── next/ai/                 ← components.json / .md (auto-generated) + mcp-server.mjs
+    ├── next/AGENTS.md           ← quy tắc cho AI khi viết code trong template
     ├── next/src/
     │   ├── components/ui/       ← Tầng 2: base components (shadcn) — sở hữu & sửa trực tiếp
     │   ├── components/common/   ← Tầng 3: component chung (Form*, DataTable, ConfirmDialog...)
@@ -127,6 +132,36 @@ npx shadcn-vue@latest add accordion -c templates/nuxt
 ```
 
 Nhớ thêm vào **cả hai** template để chúng không lệch nhau.
+
+## Dùng với AI (Claude Code, Cursor, Copilot)
+
+AI hay tự viết lại `<button>`, `<table>`, `<input type="date">` thay vì dùng component có sẵn, vì nó không biết kit này tồn tại. Mỗi template có sẵn 3 thứ để AI dùng đúng kit:
+
+| Thành phần | Vai trò |
+|---|---|
+| `AGENTS.md` (+ `CLAUDE.md` trỏ tới nó) | Quy tắc: cần gì thì dùng component nào, phân tầng, chỉ dùng token màu, form, kiểm tra trước khi xong. Claude Code, Cursor, Copilot, Codex đều tự đọc |
+| `ai/components.md` + `ai/components.json` | Danh mục **sinh tự động từ code**: mọi component, dòng import, props (kiểu, mặc định, mô tả từ JSDoc), events/slots (Vue), file story |
+| `ai/mcp-server.mjs` | MCP server `kit-components`, không cần dependency. Đã khai báo sẵn trong `.mcp.json` (Claude Code), `.cursor/mcp.json`, `.vscode/mcp.json` |
+
+Tool của MCP server:
+
+| Tool | Ví dụ |
+|---|---|
+| `search_components` | `"chọn tỉnh thành"` → Cascader; `"bảng có phân trang"` → DataTable; `"confirm before delete"` → ConfirmDialog |
+| `get_component` | Toàn bộ props / events / slots của `DataTable`; gõ sai tên (`DialogContnt`) thì gợi ý tên đúng |
+| `get_component_examples` | Code mẫu lấy thẳng từ story (`DataTable` + `story: "ServerSide"`) |
+| `list_components`, `get_project_guidelines` | Danh sách theo tầng; phần quy tắc trong `AGENTS.md` |
+
+Mở project bằng Claude Code hoặc Cursor là tool tự xuất hiện (lần đầu sẽ hỏi cho phép server). Nếu component đã sửa mà chưa sinh lại manifest, server sẽ nhắc trong kết quả (so hash nội dung `components/`).
+
+**Khi thêm hoặc sửa component**: viết JSDoc một dòng cho component (Vue: đặt ngay trước `defineProps`) và cho các prop khó hiểu, sau đó chạy:
+
+```bash
+npm run sync:ai    # ở gốc monorepo: copy packages/ai + sinh lại manifest cho cả 2 template
+npm run check:ai   # cho CI: báo lỗi nếu manifest cũ
+```
+
+Khi đã tách template ra project riêng thì dùng `npm run ai:manifest` / `npm run ai:check` ngay trong project đó.
 
 ## Có sẵn gì
 

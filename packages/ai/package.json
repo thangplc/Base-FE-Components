@@ -1,0 +1,8 @@
+{
+  "name": "@kit/ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Component manifest builder + MCP server, copied into every template by scripts/sync-ai.mjs",
+  "type": "module",
+  "files": ["build-manifest.mjs", "mcp-server.mjs"]
+}

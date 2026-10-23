@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "kit-next": {
+      "command": "node",
+      "args": ["templates/next/ai/mcp-server.mjs"]
+    },
+    "kit-nuxt": {
+      "command": "node",
+      "args": ["templates/nuxt/ai/mcp-server.mjs"]
+    }
+  }
+}

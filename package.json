@@ -14,7 +14,9 @@
     "storybook:next": "npm run storybook -w @kit/next",
     "storybook:nuxt": "npm run storybook -w @kit/nuxt",
     "sync:tokens": "node scripts/sync-tokens.mjs",
-    "build": "npm run sync:tokens && npm run build:next && npm run build:nuxt",
+    "sync:ai": "node scripts/sync-ai.mjs",
+    "check:ai": "node scripts/sync-ai.mjs --check",
+    "build": "npm run sync:tokens && npm run sync:ai && npm run build:next && npm run build:nuxt",
     "typecheck": "npm run typecheck -w @kit/next && npm run typecheck -w @kit/nuxt",
     "lint": "npm run lint -w @kit/next"
   },
